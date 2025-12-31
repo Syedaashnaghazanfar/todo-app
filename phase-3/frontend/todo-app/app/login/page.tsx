@@ -28,12 +28,10 @@ const AnimatedBackground = () => (
     <motion.div
       className="absolute top-0 left-1/4 w-[800px] h-[800px] -translate-x-1/2 -translate-y-1/2 opacity-20"
       animate={{
-        x: [0, 50, 0],
-        y: [0, -30, 0],
-        scale: [1, 1.1, 1],
+        x: [0, 20, 0],
       }}
       transition={{
-        duration: 10,
+        duration: 15,
         repeat: Infinity,
         ease: "easeInOut",
       }}
@@ -44,12 +42,10 @@ const AnimatedBackground = () => (
     <motion.div
       className="absolute bottom-0 right-1/4 w-[600px] h-[600px] translate-x-1/2 translate-y-1/2 opacity-20"
       animate={{
-        x: [0, -40, 0],
-        y: [0, 40, 0],
-        scale: [1, 1.15, 1],
+        x: [0, -20, 0],
       }}
       transition={{
-        duration: 12,
+        duration: 18,
         repeat: Infinity,
         ease: "easeInOut",
         delay: 1,
@@ -81,15 +77,86 @@ export default function LoginPage() {
       {/* Animated cyberpunk background */}
       <AnimatedBackground />
 
-      {/* Main Content Card */}
-      <motion.div
-        initial="initial"
-        animate="animate"
-        variants={fadeInUp}
-        transition={fadeInUpTransition}
-        className="relative z-10 w-full max-w-md"
-      >
-        <GlassCard variant="elevated" className="p-8 md:p-10">
+      <div className="relative z-10 w-full max-w-6xl mx-auto">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          {/* LEFT SIDE - Animated Notepad (Hidden on mobile/tablet) */}
+          <div className="hidden lg:flex items-center justify-center">
+            <div className="relative w-full max-w-md">
+              {/* Notepad Container */}
+              <div
+                className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-100/10 dark:to-yellow-100/5 rounded-lg shadow-2xl p-8 pb-12 relative overflow-hidden"
+                style={{
+                  backgroundImage: `repeating-linear-gradient(
+                    transparent,
+                    transparent 31px,
+                    rgba(59, 130, 246, 0.15) 31px,
+                    rgba(59, 130, 246, 0.15) 32px
+                  )`,
+                  backgroundSize: '100% 32px',
+                  animation: 'float 6s ease-in-out infinite'
+                }}
+              >
+                {/* Red margin line */}
+                <div className="absolute left-12 top-0 bottom-0 w-[2px] bg-red-400/30" />
+
+                {/* Paper texture overlay */}
+                <div className="absolute inset-0 opacity-5 mix-blend-multiply pointer-events-none"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.4' /%3E%3C/svg%3E")`
+                  }}
+                />
+
+                {/* Animated Tasks */}
+                <div className="relative space-y-8 pl-8">
+                  {[
+                    { text: '☐ Buy groceries', delay: '0s' },
+                    { text: '☐ Finish project report', delay: '2s' },
+                    { text: '☐ Plan tomorrow', delay: '4s' },
+                    { text: '☐ Review emails', delay: '6s' }
+                  ].map((task, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <span
+                        className="font-handwriting text-xl text-gray-800 dark:text-gray-300"
+                        style={{
+                          animation: `typewriter 1.5s steps(${task.text.length}) ${task.delay} 1 normal both, fadeIn 0.5s ${task.delay} ease-out both`,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          borderRight: '2px solid transparent',
+                          display: 'inline-block',
+                        }}
+                      >
+                        {task.text}
+                      </span>
+                    </div>
+                  ))}
+
+                  {/* Blinking cursor at the end */}
+                  <div
+                    className="w-0.5 h-5 bg-gray-800 dark:bg-gray-300"
+                    style={{
+                      animation: 'blink 1s step-end 8s infinite'
+                    }}
+                  />
+                </div>
+
+                {/* Notepad spiral binding effect */}
+                <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-gray-400/20 to-transparent" />
+              </div>
+
+              {/* Shadow beneath notepad */}
+              <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-4/5 h-8 bg-black/10 blur-xl rounded-full" />
+            </div>
+          </div>
+
+          {/* RIGHT SIDE - Login Form */}
+          <motion.div
+            initial="initial"
+            animate="animate"
+            variants={fadeInUp}
+            transition={fadeInUpTransition}
+            className="relative w-full"
+          >
+            <GlassCard variant="elevated" className="p-8 md:p-10">
           {/* Back to Home Link */}
           <Link
             href="/"
@@ -104,10 +171,10 @@ export default function LoginPage() {
             <motion.div
               className="inline-flex items-center justify-center mb-4"
               animate={{
-                rotate: [0, 5, -5, 0],
+                y: [0, -3, 0],
               }}
               transition={{
-                duration: 3,
+                duration: 4,
                 repeat: Infinity,
                 ease: "easeInOut",
               }}
@@ -160,9 +227,40 @@ export default function LoginPage() {
           </div>
         </GlassCard>
 
-        {/* Decorative glow effect under card */}
-        <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-3/4 h-8 bg-var(--accent-dashboard)/20 blur-2xl rounded-full" />
-      </motion.div>
+            {/* Decorative glow effect under card */}
+            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-3/4 h-8 bg-var(--accent-dashboard)/20 blur-2xl rounded-full" />
+          </motion.div>
+        </div>
+      </div>
+
+      {/* CSS Animations */}
+      <style jsx>{`
+        @import url('https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap');
+
+        .font-handwriting {
+          font-family: 'Indie Flower', cursive;
+        }
+
+        @keyframes typewriter {
+          from { width: 0; }
+          to { width: 100%; }
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes blink {
+          0%, 50% { opacity: 1; }
+          51%, 100% { opacity: 0; }
+        }
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(-1deg); }
+          50% { transform: translateY(-10px) rotate(1deg); }
+        }
+      `}</style>
     </div>
   );
 }

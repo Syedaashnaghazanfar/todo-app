@@ -346,6 +346,89 @@ class ApiClient {
     }
   }
 
+  /**
+   * Get history statistics (action counts)
+   */
+  async getHistoryStats(): Promise<{
+    created: number;
+    completed: number;
+    updated: number;
+    deleted: number;
+    incompleted: number;
+  }> {
+    try {
+      // Fetch first page to get total count
+      const firstPage = await this.getHistory(1, 50);
+
+      const stats = {
+        created: 0,
+        completed: 0,
+        updated: 0,
+        deleted: 0,
+        incompleted: 0,
+      };
+
+      // Process first page
+      firstPage.data.forEach((entry) => {
+        switch (entry.action_type) {
+          case 'CREATED':
+            stats.created++;
+            break;
+          case 'COMPLETED':
+            stats.completed++;
+            break;
+          case 'UPDATED':
+            stats.updated++;
+            break;
+          case 'DELETED':
+            stats.deleted++;
+            break;
+          case 'INCOMPLETED':
+            stats.incompleted++;
+            break;
+        }
+      });
+
+      // Fetch remaining pages if there are more
+      const totalPages = firstPage.pagination.total_pages;
+      if (totalPages > 1) {
+        const pagePromises = [];
+        for (let page = 2; page <= totalPages; page++) {
+          pagePromises.push(this.getHistory(page, 50));
+        }
+
+        const remainingPages = await Promise.all(pagePromises);
+
+        remainingPages.forEach((response) => {
+          response.data.forEach((entry) => {
+            switch (entry.action_type) {
+              case 'CREATED':
+                stats.created++;
+                break;
+              case 'COMPLETED':
+                stats.completed++;
+                break;
+              case 'UPDATED':
+                stats.updated++;
+                break;
+              case 'DELETED':
+                stats.deleted++;
+                break;
+              case 'INCOMPLETED':
+                stats.incompleted++;
+                break;
+            }
+          });
+        });
+      }
+
+      return stats;
+    } catch (error) {
+      console.error("Failed to fetch history stats:", error);
+      throw error;
+    }
+  }
+
   // ========================================================================
   // Statistics Endpoints
   // ========================================================================

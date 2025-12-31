@@ -129,16 +129,16 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
         {/* Back Button */}
         <motion.button
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           onClick={() => router.push('/')}
-          className="mb-6 flex items-center gap-2 var(--accent-notifications) dark:text-[var(--accent-notifications)] hover:var(--accent-notifications) dark:hover:var(--accent-notifications) font-medium transition-colors group"
+          className="mb-6 flex items-center gap-2 text-text-secondary hover:text-text-secondary font-medium transition-all duration-300 hover:gap-3 focus:outline-none focus:ring-2 focus:ring-primary-500/50 rounded px-2 py-1"
         >
-          <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+          <ArrowLeft size={20} />
           Back to Dashboard
         </motion.button>
 
@@ -149,15 +149,15 @@ export default function NotificationsPage() {
           transition={{ delay: 0.1 }}
           className="mb-10"
         >
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-gradient-to-br from-[var(--accent-notifications)] to-[var(--accent-notifications-hover)] rounded-xl shadow-lg">
-              <Bell className="h-8 w-8 text-white" />
+          <div className="flex items-center gap-4 mb-2">
+            <div className="p-3 bg-[var(--bg-elevated)]/30 backdrop-blur-sm border border-[var(--border)]/30 rounded-xl">
+              <Bell className="h-8 w-8 text-primary-400" />
             </div>
             <div>
               <h1
-                className="text-5xl font-bold text-white"
+                className="text-4xl md:text-5xl font-bold text-text-primary"
                 style={{
-                  background: 'linear-gradient(135deg, var(--accent-notifications), #ec4899)',
+                  background: 'linear-gradient(135deg, #c4b5fd 0%, #a78bfa 50%, #3b82f6 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
@@ -165,7 +165,7 @@ export default function NotificationsPage() {
               >
                 Notifications
               </h1>
-              <p className="text-[var(--text-secondary)] dark:text-[var(--text-secondary)] mt-1">
+              <p className="text-text-secondary mt-1">
                 Stay updated on your important tasks
               </p>
             </div>
@@ -174,10 +174,10 @@ export default function NotificationsPage() {
           {/* Stats and Actions */}
           <div className="flex items-center justify-between gap-4 mt-6">
             <div className="flex gap-4">
-              <div className="text-sm text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
-                <span className="font-semibold text-gray-900 dark:text-gray-100">{filteredNotifications.length}</span> notifications
+              <div className="text-sm text-text-secondary">
+                <span className="font-semibold text-text-primary">{filteredNotifications.length}</span> notifications
                 {unreadCount > 0 && (
-                  <span className="ml-2 inline-flex items-center px-2 py-1 text-xs font-semibold var(--accent-notifications) bg-[var(--accent-notifications-muted)] rounded-full">
+                  <span className="ml-2 inline-flex items-center px-2 py-1 text-xs font-semibold text-primary-400 bg-primary-400/10 rounded-full">
                     {unreadCount} unread
                   </span>
                 )}
@@ -187,7 +187,7 @@ export default function NotificationsPage() {
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium var(--accent-notifications) hover:var(--accent-notifications) hover:bg-purple-50 rounded-lg transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-400 hover:text-primary-300 rounded-lg transition-colors"
               >
                 <CheckCheck size={16} />
                 Mark all as read
@@ -201,16 +201,16 @@ export default function NotificationsPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="mb-6 flex gap-2 dark:bg-gray-800 dark:bg-gray-800 p-2 rounded-xl border border-[var(--border)] dark:border-[var(--border)] shadow-md"
+          className="mb-6 flex gap-2 p-1 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border)]"
         >
           {(['all', 'unread', 'read'] as const).map((filterOption) => (
             <button
               key={filterOption}
               onClick={() => setFilter(filterOption)}
-              className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                 filter === filterOption
-                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md'
-                  : 'text-[var(--text-secondary)] dark:text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-[var(--primary)] text-white'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-[var(--bg-dark)]'
               }`}
             >
               {filterOption.charAt(0).toUpperCase() + filterOption.slice(1)}
@@ -222,8 +222,8 @@ export default function NotificationsPage() {
         {loading && (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-purple-600 border-r-transparent mb-3" />
-              <p className="text-sm text-[var(--text-secondary)]">Loading notifications...</p>
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary-500/20 border-t-primary-500 mb-3" />
+              <p className="text-sm text-text-secondary">Loading notifications...</p>
             </div>
           </div>
         )}
@@ -234,13 +234,13 @@ export default function NotificationsPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
-            className="dark:bg-gray-800 dark:bg-gray-800 p-12 rounded-xl border border-[var(--border)] dark:border-[var(--border)] shadow-md text-center"
+            className="p-12 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] text-center"
           >
-            <Inbox size={64} className="mx-auto var(--accent-notifications) mb-4" />
+            <Inbox size={64} className="mx-auto text-primary-400 mb-4" />
             <h3
-              className="text-xl font-semibold mb-2 text-white"
+              className="text-xl font-semibold mb-2 text-text-primary"
               style={{
-                background: 'linear-gradient(135deg, var(--accent-notifications), #ec4899)',
+                background: 'linear-gradient(135deg, #c4b5fd 0%, #a78bfa 50%, #3b82f6 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -248,7 +248,7 @@ export default function NotificationsPage() {
             >
               {filter === 'all' ? 'No notifications yet' : `No ${filter} notifications`}
             </h3>
-            <p className="text-sm text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
+            <p className="text-sm text-text-secondary">
               {filter === 'all'
                 ? "You'll receive notifications for VERY IMPORTANT tasks due within 6 hours."
                 : `Switch to "All" to see all notifications.`}
@@ -275,22 +275,22 @@ export default function NotificationsPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.3 + index * 0.05 }}
                   onClick={() => isUnread && markAsRead(notification.id)}
-                  className={`p-4 rounded-xl border shadow-sm transition-all cursor-pointer ${
+                  className={`p-4 rounded-xl border transition-all cursor-pointer ${
                     isUnread
-                      ? 'dark:bg-gray-800 dark:bg-gray-800 border-purple-200 dark:border-purple-800 hover:shadow-md'
-                      : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 opacity-70'
-                  } ${isVeryImportant && isUnread ? 'ring-2 ring-purple-300' : ''}`}
+                      ? 'bg-[var(--bg-card)] border-[var(--border)] hover:border-primary-500/50'
+                      : 'bg-[var(--bg-dark)] border-[var(--border)] opacity-70'
+                  } ${isVeryImportant && isUnread ? 'ring-1 ring-primary-500/30' : ''}`}
                 >
                   <div className="flex items-start gap-3">
                     {/* Icon */}
                     <div
                       className={`p-2 rounded-lg ${
-                        isVeryImportant ? 'bg-[var(--accent-notifications-muted)] dark:bg-purple-900' : 'bg-gray-100 dark:bg-gray-800'
+                        isVeryImportant ? 'bg-primary-400/10' : 'bg-[var(--bg-elevated)]'
                       }`}
                     >
                       <Bell
                         size={20}
-                        className={isVeryImportant ? 'var(--accent-notifications) dark:text-[var(--accent-notifications)]' : 'text-[var(--text-secondary)] dark:text-gray-400'}
+                        className={isVeryImportant ? 'text-primary-400' : 'text-text-secondary'}
                       />
                     </div>
 
@@ -299,18 +299,18 @@ export default function NotificationsPage() {
                       <p
                         className={`text-sm mb-1 ${
                           isUnread
-                            ? 'text-gray-900 dark:text-gray-100 font-semibold'
-                            : 'text-[var(--text-secondary)] dark:text-gray-400'
+                            ? 'text-text-primary font-medium'
+                            : 'text-text-secondary'
                         }`}
                       >
                         {notification.message}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{formatTime(notification.created_at)}</p>
+                      <p className="text-xs text-text-muted">{formatTime(notification.created_at)}</p>
                     </div>
 
                     {/* Unread indicator */}
                     {isUnread && (
-                      <div className="w-2 h-2 bg-purple-600 rounded-full flex-shrink-0 mt-1.5" />
+                      <div className="w-2 h-2 bg-primary-500 rounded-full flex-shrink-0 mt-1.5" />
                     )}
                   </div>
                 </motion.div>

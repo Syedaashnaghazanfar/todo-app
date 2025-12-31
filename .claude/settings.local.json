@@ -236,7 +236,8 @@
       "Bash(git remote get-url:*)",
       "Bash(git remote:*)",
       "Bash(git reset:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial commit: Full-stack AI-powered Todo App\n\nComplete todo application with:\n- Next.js 16 frontend with Tailwind CSS and Shadcn UI\n- FastAPI Python backend with SQLModel\n- AI chatbot integration with ChatKit and MCP tools\n- Better Auth authentication\n- Task management with priorities, tags, and categories\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ],
     "deny": [],
     "ask": []

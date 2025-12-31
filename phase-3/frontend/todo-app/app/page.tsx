@@ -1,18 +1,12 @@
 /**
  * Home Page Route
  *
- * Main landing page for the application.
- * Renders the HomePage container component with hero section, navigation, sidebar, and footer.
- *
- * @see /specs/001-phase2-homepage-ui/spec.md - Phase 3: T024
+ * Main landing page - shows public hero for guests, dashboard for logged in users.
  */
 
-import { HomePage } from "@/components/HomePage";
+import DashboardHome from "@/components/HomePage/DashboardHome";
 import type { Metadata } from "next";
 
-/**
- * Page metadata for SEO
- */
 export const metadata: Metadata = {
   title: "Todo App - Your Productivity Dashboard",
   description:
@@ -27,12 +21,6 @@ export const metadata: Metadata = {
   },
 };
 
-/**
- * Home Page Component
- *
- * Entry point for the root route ("/").
- * Server component that renders the client-side HomePage container.
- */
 export default function Home() {
-  return <HomePage />;
+  return <DashboardHome />;
 }

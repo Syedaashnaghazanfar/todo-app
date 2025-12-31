@@ -1,5 +1,5 @@
 # Dockerfile for Hugging Face Spaces Deployment
-# FastAPI Backend with PostgreSQL
+# FastAPI Backend with AI Chatbot (OpenAI Agents SDK + MCP)
 
 FROM python:3.11-slim
 
@@ -10,7 +10,8 @@ WORKDIR /app
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONPATH=/app/src
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -38,5 +39,5 @@ EXPOSE 7860
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:7860/api/v1/health', timeout=2)"
 
-# Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]
+# Run the application with correct module path
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "7860"]

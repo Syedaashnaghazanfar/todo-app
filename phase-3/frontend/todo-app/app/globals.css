@@ -234,13 +234,20 @@
 /* ========================================
    THEME TRANSITION
    Smooth transition when switching themes
+   Only transition specific elements, not all *
    ======================================== */
 html {
   transition: background-color var(--transition-normal), color var(--transition-normal);
 }
 
+/* Only transition interactive elements for performance */
+button, input, select, textarea, a {
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+/* Disable transitions on all * for performance */
 * {
-  transition: background-color var(--transition-normal), border-color var(--transition-normal), color var(--transition-normal);
+  transition: none !important;
 }
 
 /* ========================================
@@ -474,13 +481,13 @@ html {
      Dark purple with neon glow effects
      ======================================== */
 
-  /* Modal container with glassmorphism */
+  /* Modal container with glassmorphism - reduced blur for performance */
   .swal2-popup {
-    background: rgba(15, 15, 35, 0.95) !important;
-    backdrop-filter: blur(20px) !important;
-    border: 2px solid rgba(139, 92, 246, 0.5) !important;
-    border-radius: 16px !important;
-    box-shadow: 0 0 40px rgba(139, 92, 246, 0.4), 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+    background: rgba(15, 15, 35, 0.98) !important;
+    backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(139, 92, 246, 0.3) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
     color: #f8fafc !important;
   }
 
@@ -635,12 +642,12 @@ html {
     box-shadow: 0 0 15px rgba(139, 92, 246, 0.6) !important;
   }
 
-  /* Toast notifications */
+  /* Toast notifications - reduced blur */
   .swal2-toast {
     background: rgba(15, 15, 35, 0.98) !important;
-    backdrop-filter: blur(20px) !important;
-    border: 1px solid rgba(139, 92, 246, 0.3) !important;
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3) !important;
+    backdrop-filter: blur(4px) !important;
+    border: 1px solid rgba(139, 92, 246, 0.2) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
   }
 }
 
@@ -672,21 +679,20 @@ html {
 
 .chatkit-purple-theme .chatkit-message-assistant {
   background: rgba(255, 255, 255, 0.05) !important;
-  backdrop-filter: blur(16px) !important;
+  backdrop-filter: blur(4px) !important;
   border: 1px solid rgba(168, 85, 247, 0.2) !important;
   border-radius: 1rem !important;
   color: #f9fafb !important;
 }
 
-/* ChatKit input field */
+/* ChatKit input field - reduced blur for performance */
 .chatkit-purple-theme .chatkit-input {
   background: rgba(255, 255, 255, 0.05) !important;
-  backdrop-filter: blur(16px) !important;
+  backdrop-filter: blur(4px) !important;
   border: 1px solid rgba(168, 85, 247, 0.3) !important;
-  border-radius: 1rem !important;
+  border-radius: 0.75rem !important;
   color: #f9fafb !important;
-  padding: 12px 16px !important;
-  transition: all 0.3s ease !important;
+  padding: 10px 14px !important;
 }
 
 .chatkit-purple-theme .chatkit-input:focus {
@@ -699,21 +705,19 @@ html {
   color: #9ca3af !important;
 }
 
-/* ChatKit send button with purple glow */
+/* ChatKit send button - reduced glow for performance */
 .chatkit-purple-theme .chatkit-send-button {
   background: linear-gradient(135deg, #9333ea, #a855f7) !important;
   color: #fff !important;
   border: none !important;
   border-radius: 0.75rem !important;
   padding: 10px 16px !important;
-  box-shadow: 0 0 20px rgba(168, 85, 247, 0.4) !important;
-  transition: all 0.3s ease !important;
+  box-shadow: 0 2px 8px rgba(168, 85, 247, 0.3) !important;
 }
 
 .chatkit-purple-theme .chatkit-send-button:hover {
   background: linear-gradient(135deg, #7e22ce, #9333ea) !important;
-  box-shadow: 0 0 30px rgba(168, 85, 247, 0.6) !important;
-  transform: scale(1.05) !important;
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4) !important;
 }
 
 .chatkit-purple-theme .chatkit-send-button:active {

@@ -13,6 +13,8 @@ import React from "react";
 import { HistoryEntry as HistoryEntryType, PaginationMeta } from "@/services/api";
 import HistoryEntry from "./HistoryEntry";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { GlassCard } from "@/components/ui/glass-card";
+import { motion } from "framer-motion";
 
 interface HistoryListProps {
   entries: HistoryEntryType[];
@@ -32,12 +34,12 @@ export default function HistoryList({
   // Empty state
   if (entries.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-16 text-center border border-purple-100 dark:border-purple-900">
+      <GlassCard variant="elevated" className="p-12 text-center">
         <div className="max-w-md mx-auto">
           <div className="mb-6">
-            <div className="mx-auto w-20 h-20 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-full flex items-center justify-center">
+            <div className="mx-auto w-20 h-20 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center">
               <svg
-                className="w-10 h-10 text-purple-400"
+                className="w-10 h-10 text-text-muted"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -51,14 +53,14 @@ export default function HistoryList({
               </svg>
             </div>
           </div>
-          <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+          <h3 className="text-xl font-semibold text-text-primary mb-2">
             No History Yet
           </h3>
-          <p className="text-gray-500 dark:text-gray-400">
+          <p className="text-text-secondary">
             Your task activity timeline will appear here. Start creating, updating, and completing tasks to see your history!
           </p>
         </div>
-      </div>
+      </GlassCard>
     );
   }
 
@@ -78,42 +80,46 @@ export default function HistoryList({
 
       {/* Pagination Controls */}
       {total_pages > 1 && (
-        <div className="bg-gradient-to-r from-white to-purple-50 dark:from-gray-800 dark:to-purple-900/20 rounded-xl shadow-lg p-6 border border-purple-100 dark:border-purple-900">
+        <GlassCard variant="elevated" className="p-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
             {/* Page Info */}
             <div className="text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Showing page</span>{" "}
-              <span className="font-bold text-lg text-purple-600 dark:text-purple-400">{page}</span>{" "}
-              <span className="text-gray-600 dark:text-gray-400">of</span>{" "}
-              <span className="font-bold text-lg text-purple-600 dark:text-purple-400">{total_pages}</span>
-              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              <span className="text-text-secondary">Showing page</span>{" "}
+              <span className="font-bold text-text-primary">{page}</span>{" "}
+              <span className="text-text-secondary">of</span>{" "}
+              <span className="font-bold text-text-primary">{total_pages}</span>
+              <div className="mt-1 text-xs text-text-muted">
                 {total_count} total {total_count === 1 ? "event" : "events"}
               </div>
             </div>
 
             {/* Navigation Buttons */}
             <div className="flex gap-3">
-              <button
+              <motion.button
                 onClick={() => onPageChange(page - 1)}
                 disabled={page === 1}
-                className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed dark:bg-gray-700 dark:hover:bg-gray-600 dark:disabled:bg-gray-800 text-purple-600 dark:text-purple-400 font-semibold rounded-lg transition-all shadow-md hover:shadow-lg disabled:shadow-none border border-purple-200 dark:border-purple-800"
+                whileHover={{ scale: page > 1 ? 1.02 : 1 }}
+                whileTap={{ scale: page > 1 ? 0.98 : 1 }}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-[var(--bg-elevated)] hover:bg-[var(--primary)] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[var(--bg-elevated)] disabled:hover:text-inherit"
                 aria-label="Previous page"
               >
-                <ChevronLeft size={18} />
+                <ChevronLeft size={16} />
                 Previous
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 onClick={() => onPageChange(page + 1)}
                 disabled={page === total_pages}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-100 disabled:to-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed dark:disabled:from-gray-800 dark:disabled:to-gray-800 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg disabled:shadow-none"
+                whileHover={{ scale: page < total_pages ? 1.02 : 1 }}
+                whileTap={{ scale: page < total_pages ? 0.98 : 1 }}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-[var(--primary)] text-white hover:bg-[var(--primary-400)] disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Next page"
               >
                 Next
-                <ChevronRight size={18} />
-              </button>
+                <ChevronRight size={16} />
+              </motion.button>
             </div>
           </div>
-        </div>
+        </GlassCard>
       )}
     </div>
   );

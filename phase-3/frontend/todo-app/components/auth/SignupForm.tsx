@@ -192,8 +192,9 @@ export const SignupForm: React.FC = () => {
       await signupSuccess();
 
       // Redirect to intended page or tasks page as fallback (auto-login)
+      // Use window.location for full page reload to ensure cookies are properly set
       const redirectTo = searchParams.get('redirect') || '/tasks';
-      router.push(redirectTo);
+      window.location.href = redirectTo;
     } catch (error) {
       // Show error alert with API message
       const errorMessage = error instanceof Error ? error.message : 'Signup failed. Please try again.';

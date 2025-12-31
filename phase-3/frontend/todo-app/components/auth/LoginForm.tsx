@@ -158,9 +158,10 @@ export const LoginForm: React.FC = () => {
       // Show success alert
       await loginSuccess();
 
-      // Redirect to intended page or tasks page as fallback
-      const redirectTo = searchParams.get('redirect') || '/tasks';
-      router.push(redirectTo);
+      // Redirect to intended page or home page as fallback
+      // Use window.location for full page reload to ensure cookies are properly set
+      const redirectTo = searchParams.get('redirect') || '/';
+      window.location.href = redirectTo;
     } catch (error) {
       // Show error alert with API message
       const errorMessage = error instanceof Error ? error.message : 'Login failed. Please try again.';
