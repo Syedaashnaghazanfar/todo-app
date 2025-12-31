@@ -1,0 +1,9 @@
+0001-authentication-integration-planning.plan.prompt.md
+0002-authentication-integration-tasks.tasks.prompt.md
+0003-authentication-phase1-phase2-phase3-implementation.green.prompt.md
+0004-betterauth-mcp-signup-error-fix.refactor.prompt.md
+0005-phase-4-user-login-implementation.green.prompt.md
+0006-phase-5-protected-routes-implementation.green.prompt.md
+0007-phase-6-user-isolation-backend-implementation.green.prompt.md
+0008-phase-7-user-logout-implementation.green.prompt.md
+0009-phase-8-session-persistence-polish-complete.green.prompt.md

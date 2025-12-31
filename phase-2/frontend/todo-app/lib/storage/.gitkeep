@@ -1,0 +1,4 @@
+# Storage Directory
+
+This directory contains storage abstraction layers:
+- localStorage.ts: localStorage wrapper with quota detection and error handling

@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://todo-app.com/schemas/sort-state.json",
+  "title": "SortState",
+  "description": "Active sort configuration with tie-breaking rules",
+  "type": "object",
+  "required": ["field", "direction"],
+  "properties": {
+    "field": {
+      "type": "string",
+      "enum": ["priority", "dueDate", "createdDate", "alphabetical"],
+      "default": "priority",
+      "description": "Sort field (with automatic tie-breakers)"
+    },
+    "direction": {
+      "type": "string",
+      "enum": ["asc", "desc"],
+      "default": "desc",
+      "description": "Sort direction (ascending or descending)"
+    }
+  },
+  "examples": [
+    {
+      "field": "priority",
+      "direction": "desc"
+    },
+    {
+      "field": "dueDate",
+      "direction": "asc"
+    }
+  ]
+}

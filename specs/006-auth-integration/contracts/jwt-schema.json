@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://todoapp.com/schemas/jwt-payload.json",
+  "title": "JWT Token Payload Schema",
+  "description": "Schema for JWT token payload used in TodoApp authentication",
+  "type": "object",
+  "required": ["sub", "exp", "iat"],
+  "properties": {
+    "sub": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Subject - User ID (UUID format)",
+      "example": "550e8400-e29b-41d4-a716-446655440000"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "User email address",
+      "example": "user@example.com"
+    },
+    "exp": {
+      "type": "integer",
+      "description": "Expiration time (Unix timestamp, 30 days from issue)",
+      "example": 1734595200,
+      "minimum": 0
+    },
+    "iat": {
+      "type": "integer",
+      "description": "Issued at time (Unix timestamp)",
+      "example": 1732003200,
+      "minimum": 0
+    },
+    "iss": {
+      "type": "string",
+      "description": "Issuer (TodoApp backend API)",
+      "example": "todoapp-api",
+      "const": "todoapp-api"
+    },
+    "aud": {
+      "type": "string",
+      "description": "Audience (TodoApp frontend client)",
+      "example": "todoapp-client",
+      "const": "todoapp-client"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "sub": "550e8400-e29b-41d4-a716-446655440000",
+      "email": "user@example.com",
+      "exp": 1734595200,
+      "iat": 1732003200,
+      "iss": "todoapp-api",
+      "aud": "todoapp-client"
+    }
+  ],
+  "definitions": {
+    "TokenType": {
+      "type": "string",
+      "enum": ["access"],
+      "description": "Type of JWT token (only access tokens used in this app)"
+    }
+  },
+  "notes": {
+    "algorithm": "HS256 (HMAC with SHA-256)",
+    "secret_storage": "Environment variable JWT_SECRET (minimum 32 characters)",
+    "expiry_duration": "30 days (2592000 seconds)",
+    "refresh_tokens": "Not implemented in Phase 1 (future enhancement)",
+    "revocation": "Session deletion in database invalidates token",
+    "storage": "httpOnly cookie on client-side (name: auth_token)",
+    "transmission": "Cookie automatically sent with credentials: 'include'",
+    "security": {
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax",
+      "maxAge": 2592000
+    }
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://todo-app.com/schemas/task.json",
+  "title": "Task",
+  "description": "A todo item with auto-classification, tags, and temporal metadata",
+  "type": "object",
+  "required": ["id", "title", "priority", "status", "tags", "createdAt", "updatedAt"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier (UUID v4)"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Task title (1-200 characters, required)"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Task description (optional, max 2000 characters)"
+    },
+    "dueDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Due date in ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)"
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["VERY_IMPORTANT", "HIGH", "MEDIUM", "LOW"],
+      "description": "Auto-computed priority based on due date and urgency keywords"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["NOT_STARTED", "IN_PROGRESS", "COMPLETED"],
+      "default": "NOT_STARTED",
+      "description": "Task status (user-controlled)"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["Work", "Personal", "Shopping", "Health", "Finance", "Learning", "Urgent"]
+      },
+      "maxItems": 5,
+      "uniqueItems": true,
+      "description": "Task tags from 7 standard categories (max 5, no duplicates)"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Creation timestamp in ISO 8601 format (immutable)"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last update timestamp in ISO 8601 format (auto-updated)"
+    },
+    "isOverdue": {
+      "type": "boolean",
+      "description": "Computed field: true if dueDate < now (not persisted)"
+    },
+    "isUrgent": {
+      "type": "boolean",
+      "description": "Computed field: true if dueDate within 6 hours (not persisted)"
+    },
+    "isUpcoming": {
+      "type": "boolean",
+      "description": "Computed field: true if dueDate within 24 hours (not persisted)"
+    },
+    "relativeTime": {
+      "type": "string",
+      "description": "Computed field: relative time display like 'in 2 hours' (not persisted)"
+    }
+  },
+  "examples": [
+    {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "title": "Urgent: Fix production bug",
+      "description": "Critical bug affecting checkout flow",
+      "dueDate": "2025-12-16T18:00:00.000Z",
+      "priority": "VERY_IMPORTANT",
+      "status": "IN_PROGRESS",
+      "tags": ["Work", "Urgent"],
+      "createdAt": "2025-12-16T10:00:00.000Z",
+      "updatedAt": "2025-12-16T10:30:00.000Z"
+    },
+    {
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "title": "Buy groceries",
+      "description": null,
+      "dueDate": null,
+      "priority": "LOW",
+      "status": "NOT_STARTED",
+      "tags": ["Shopping", "Personal"],
+      "createdAt": "2025-12-16T09:00:00.000Z",
+      "updatedAt": "2025-12-16T09:00:00.000Z"
+    }
+  ]
+}

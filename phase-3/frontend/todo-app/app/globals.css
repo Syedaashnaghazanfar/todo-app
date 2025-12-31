@@ -1,0 +1,776 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+@custom-variant light (&:is(.light *));
+
+/* ========================================
+   CALM DESIGN SYSTEM - CSS CUSTOM PROPERTIES
+   Phase 3 Todo App - UI Redesign
+   ======================================== */
+
+/* ========================================
+   DARK THEME - CALM PALETTE
+   No pure black (#000000 or #030014), uses rich dark colors
+   ======================================== */
+:root,
+.dark {
+  /* Border Radius */
+  --radius: 0.5rem;
+
+  /* ========================================
+     DARK THEME COLORS (Rich, not pure black)
+     ======================================== */
+
+  /* Background layers */
+  --bg-darkest: #0F1117;     /* Deepest background - page root */
+  --bg-dark: #1A1D2E;        /* Main background - content areas */
+  --bg-card: #242838;        /* Card surfaces */
+  --bg-elevated: #2D3142;    /* Elevated surfaces (hover, dropdowns) */
+
+  /* Text colors */
+  --text-primary: #F8FAFC;       /* Primary text - high contrast */
+  --text-secondary: #94A3B8;     /* Secondary text - muted */
+  --text-muted: #64748B;         /* Muted text - lowest priority */
+
+  /* Border colors */
+  --border: oklch(1 0 0 / 0.1);           /* Subtle border */
+  --border-hover: oklch(1 0 0 / 0.15);    /* Hover border */
+
+  /* Interactive colors */
+  --primary: #8B5CF6;        /* Purple-500 - primary actions */
+  --primary-foreground: #FFFFFF;
+  --secondary: #3B3F4F;      /* Secondary interactive */
+  --secondary-foreground: #F8FAFC;
+  --accent: #A78BFA;         /* Purple-400 - accents */
+  --accent-foreground: #FFFFFF;
+  --muted: #2D3142;          /* Muted backgrounds */
+  --muted-foreground: #94A3B8;
+
+  /* ========================================
+     PER-PAGE ACCENT COLORS
+     Each page uses a single accent color
+     ======================================== */
+
+  /* Dashboard - Purple */
+  --accent-dashboard: #8B5CF6;
+  --accent-dashboard-light: oklch(0.869 0.125 293.71);
+  --accent-dashboard-muted: oklch(0.962 0.035 293.71);
+
+  /* Tasks - Cyan */
+  --accent-tasks: #06B6D4;
+  --accent-tasks-light: oklch(0.878 0.126 192.52);
+  --accent-tasks-muted: oklch(0.958 0.045 192.52);
+
+  /* Analytics - Green */
+  --accent-analytics: #10B981;
+  --accent-analytics-light: oklch(0.868 0.137 156.49);
+  --accent-analytics-muted: oklch(0.954 0.045 156.49);
+
+  /* History - Amber */
+  --accent-history: #F59E0B;
+  --accent-history-light: oklch(0.865 0.121 70.52);
+  --accent-history-muted: oklch(0.954 0.048 70.52);
+
+  /* Notifications - Pink */
+  --accent-notifications: #EC4899;
+  --accent-notifications-light: oklch(0.863 0.151 352.25);
+  --accent-notifications-muted: oklch(0.956 0.043 352.25);
+
+  /* Settings - Indigo */
+  --accent-settings: #6366F1;
+  --accent-settings-light: oklch(0.855 0.144 262.52);
+  --accent-settings-muted: oklch(0.953 0.035 262.52);
+
+  /* Chat - Violet */
+  --accent-chat: #7C3AED;
+  --accent-chat-light: oklch(0.847 0.158 284.45);
+  --accent-chat-muted: oklch(0.953 0.032 284.45);
+
+  /* ========================================
+     SEMANTIC COLOR TOKENS
+     ======================================== */
+
+  /* Backgrounds */
+  --background: var(--bg-dark);
+  --foreground: var(--text-primary);
+
+  /* Cards & Popovers */
+  --card: var(--bg-card);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-card);
+  --popover-foreground: var(--text-primary);
+
+  /* Primary (brand color) */
+  --primary: var(--primary);
+  --primary-foreground: var(--primary-foreground);
+
+  /* Secondary */
+  --secondary: var(--secondary);
+  --secondary-foreground: var(--secondary-foreground);
+
+  /* Muted */
+  --muted: var(--muted);
+  --muted-foreground: var(--muted-foreground);
+
+  /* Accent */
+  --accent: var(--accent);
+  --accent-foreground: var(--accent-foreground);
+
+  /* Destructive (Error States) */
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+
+  /* Borders & Inputs */
+  --border: var(--border);
+  --input: var(--border);
+
+  /* Focus Ring */
+  --ring: var(--primary);
+
+  /* ========================================
+     SHADOWS (Calm, no neon glow)
+     ======================================== */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+
+  /* ========================================
+     TRANSITIONS (Smooth, physics-based)
+     ======================================== */
+  --transition-fast: 150ms ease-out;
+  --transition-normal: 300ms ease-out;
+  --transition-slow: 500ms ease-out;
+
+  /* ========================================
+     CHART COLORS (Calm, muted)
+     ======================================== */
+  --chart-1: #8B5CF6;        /* Purple */
+  --chart-2: #06B6D4;        /* Cyan */
+  --chart-3: #10B981;        /* Green */
+  --chart-4: #F59E0B;        /* Amber */
+  --chart-5: #EC4899;        /* Pink */
+}
+
+/* ========================================
+   LIGHT THEME - CALM PALETTE
+   No pure white (#FFFFFF) for backgrounds, uses soft off-whites
+   ======================================== */
+.light {
+  /* Background layers */
+  --bg-darkest: #F8FAFC;     /* Light main background */
+  --bg-dark: #F1F5F9;        /* Secondary background */
+  --bg-card: #FFFFFF;        /* Card surfaces (can be white) */
+  --bg-elevated: #E2E8F0;    /* Elevated surfaces */
+
+  /* Text colors */
+  --text-primary: #0F1117;   /* Primary text - high contrast */
+  --text-secondary: #64748B; /* Secondary text - muted */
+  --text-muted: #94A3B8;     /* Muted text */
+
+  /* Border colors */
+  --border: #E2E8F0;
+  --border-hover: #CBD5E1;
+
+  /* Interactive colors */
+  --primary: #8B5CF6;        /* Purple-500 */
+  --primary-foreground: #FFFFFF;
+  --secondary: #E2E8F0;      /* Secondary interactive */
+  --secondary-foreground: #0F1117;
+  --accent: #A78BFA;         /* Purple-400 */
+  --accent-foreground: #FFFFFF;
+  --muted: #F1F5F9;          /* Muted backgrounds */
+  --muted-foreground: #64748B;
+
+  /* ========================================
+     SEMANTIC COLOR TOKENS (Light)
+     ======================================== */
+
+  /* Backgrounds */
+  --background: var(--bg-darkest);
+  --foreground: var(--text-primary);
+
+  /* Cards & Popovers */
+  --card: var(--bg-card);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-card);
+  --popover-foreground: var(--text-primary);
+
+  /* Primary */
+  --primary: var(--primary);
+  --primary-foreground: var(--primary-foreground);
+
+  /* Secondary */
+  --secondary: var(--secondary);
+  --secondary-foreground: var(--secondary-foreground);
+
+  /* Muted */
+  --muted: var(--muted);
+  --muted-foreground: var(--muted-foreground);
+
+  /* Accent */
+  --accent: var(--accent);
+  --accent-foreground: var(--accent-foreground);
+
+  /* Destructive */
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+
+  /* Borders & Inputs */
+  --border: var(--border);
+  --input: var(--border);
+
+  /* Focus Ring */
+  --ring: var(--primary);
+
+  /* Shadows (Lighter for light theme) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* ========================================
+   THEME TRANSITION
+   Smooth transition when switching themes
+   ======================================== */
+html {
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+* {
+  transition: background-color var(--transition-normal), border-color var(--transition-normal), color var(--transition-normal);
+}
+
+/* ========================================
+   TAILWIND CSS THEME INTEGRATION
+   Maps CSS variables to Tailwind utilities
+   ======================================== */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
+
+  /* Per-page accent colors */
+  --color-accent-dashboard: var(--accent-dashboard);
+  --color-accent-dashboard-light: var(--accent-dashboard-light);
+  --color-accent-dashboard-muted: var(--accent-dashboard-muted);
+  --color-accent-tasks: var(--accent-tasks);
+  --color-accent-tasks-light: var(--accent-tasks-light);
+  --color-accent-tasks-muted: var(--accent-tasks-muted);
+  --color-accent-analytics: var(--accent-analytics);
+  --color-accent-analytics-light: var(--accent-analytics-light);
+  --color-accent-analytics-muted: var(--accent-analytics-muted);
+  --color-accent-history: var(--accent-history);
+  --color-accent-history-light: var(--accent-history-light);
+  --color-accent-history-muted: var(--accent-history-muted);
+  --color-accent-notifications: var(--accent-notifications);
+  --color-accent-notifications-light: var(--accent-notifications-light);
+  --color-accent-notifications-muted: var(--accent-notifications-muted);
+  --color-accent-settings: var(--accent-settings);
+  --color-accent-settings-light: var(--accent-settings-light);
+  --color-accent-settings-muted: var(--accent-settings-muted);
+  --color-accent-chat: var(--accent-chat);
+  --color-accent-chat-light: var(--accent-chat-light);
+  --color-accent-chat-muted: var(--accent-chat-muted);
+
+  /* Shadows */
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+  --shadow-2xl: var(--shadow-2xl);
+
+  /* Transitions */
+  --transition-fast: var(--transition-fast);
+  --transition-normal: var(--transition-normal);
+  --transition-slow: var(--transition-slow);
+}
+
+/* ========================================
+   BASE STYLES WITH ACCESSIBILITY
+   ======================================== */
+@layer base {
+  /* Universal Styles */
+  * {
+    @apply border-border;
+  }
+
+  /* Body Styles */
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* ========================================
+     ACCESSIBILITY: Focus States
+     Clear, visible focus indicators for keyboard navigation
+     ======================================== */
+  *:focus-visible {
+    outline: 2px solid oklch(0.643 0.205 293.71); /* Purple-500 */
+    outline-offset: 2px;
+  }
+
+  /* Button Focus States */
+  button:focus-visible,
+  a:focus-visible {
+    outline: 2px solid oklch(0.643 0.205 293.71); /* Purple-500 */
+    outline-offset: 2px;
+  }
+
+  /* Input Focus States */
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid oklch(0.643 0.205 293.71); /* Purple-500 */
+    outline-offset: 0px;
+    border-color: oklch(0.643 0.205 293.71); /* Purple-500 */
+  }
+
+  /* ========================================
+     ACCESSIBILITY: Selection Highlight
+     Purple highlight color for text selection
+     ======================================== */
+  ::selection {
+    background-color: oklch(0.869 0.125 293.71); /* Purple-300 */
+    color: oklch(0.145 0 0); /* Dark text */
+  }
+
+  /* ========================================
+     ACCESSIBILITY: Reduced Motion
+     Disable animations for users who prefer reduced motion
+     ======================================== */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* ========================================
+     TYPOGRAPHY: Readability
+     Base font sizes and line heights for optimal readability
+     ======================================== */
+  html {
+    font-size: 16px; /* Base font size */
+    line-height: 1.5; /* Comfortable line height */
+  }
+
+  body {
+    font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Headings - FORCE VISIBLE TEXT ON DARK BACKGROUNDS */
+  h1, h2, h3, h4, h5, h6 {
+    line-height: 1.2;
+    font-weight: 600;
+    color: var(--text-primary) !important;
+  }
+
+  /* Paragraphs - Readable secondary color */
+  p {
+    color: var(--text-secondary);
+  }
+
+  /* Ensure body text is always visible */
+  body {
+    color: var(--text-primary);
+  }
+
+  /* Links */
+  a {
+    color: var(--primary-400); /* Lighter purple for better visibility */
+    text-decoration: none;
+  }
+
+  a:hover {
+    color: var(--primary-300); /* Even lighter on hover */
+  }
+
+  /* ========================================
+     SCROLLBAR STYLING (Optional Enhancement)
+     Purple-themed scrollbar for consistent branding
+     ======================================== */
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: oklch(0.97 0 0); /* Light gray */
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: oklch(0.869 0.125 293.71); /* Purple-300 */
+    border-radius: 6px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.643 0.205 293.71); /* Purple-500 */
+  }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(0.869 0.125 293.71) oklch(0.97 0 0); /* Purple-300 on light gray */
+  }
+
+  /* ========================================
+     SHIMMER ANIMATION FOR LOADING SKELETONS
+     Neon-themed shimmer effect
+     ======================================== */
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  /* ========================================
+     SWEETALERT2 CUSTOM STYLING
+     Dark purple with neon glow effects
+     ======================================== */
+
+  /* Modal container with glassmorphism */
+  .swal2-popup {
+    background: rgba(15, 15, 35, 0.95) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 2px solid rgba(139, 92, 246, 0.5) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 0 40px rgba(139, 92, 246, 0.4), 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+    color: #f8fafc !important;
+  }
+
+  /* Title styling */
+  .swal2-title {
+    color: #c4b5fd !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 20px rgba(168, 85, 247, 0.4) !important;
+  }
+
+  /* Content text */
+  .swal2-html-container {
+    color: #94a3b8 !important;
+  }
+
+  /* Confirm button with neon purple gradient */
+  .swal2-confirm {
+    background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+    font-weight: 600 !important;
+    padding: 12px 24px !important;
+    transition: all 0.3s ease !important;
+  }
+
+  .swal2-confirm:hover {
+    background: linear-gradient(135deg, #a78bfa 0%, #c4b5fd 100%) !important;
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.7) !important;
+    transform: scale(1.05) !important;
+  }
+
+  /* Cancel button with glass effect */
+  .swal2-cancel {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 8px !important;
+    color: #94a3b8 !important;
+    font-weight: 600 !important;
+    padding: 12px 24px !important;
+    transition: all 0.3s ease !important;
+  }
+
+  .swal2-cancel:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(139, 92, 246, 0.3) !important;
+    color: #f8fafc !important;
+  }
+
+  /* Deny button (destructive actions) with red neon */
+  .swal2-deny {
+    background: rgba(239, 68, 68, 0.2) !important;
+    border: 2px solid rgba(239, 68, 68, 0.5) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4) !important;
+    color: #fca5a5 !important;
+    font-weight: 600 !important;
+    padding: 12px 24px !important;
+    transition: all 0.3s ease !important;
+  }
+
+  .swal2-deny:hover {
+    background: rgba(239, 68, 68, 0.3) !important;
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.6) !important;
+    transform: scale(1.05) !important;
+  }
+
+  /* Icon styling */
+  .swal2-icon {
+    border-color: rgba(139, 92, 246, 0.5) !important;
+  }
+
+  .swal2-icon.swal2-success {
+    border-color: rgba(16, 185, 129, 0.5) !important;
+  }
+
+  .swal2-icon.swal2-success [class^='swal2-success-line'] {
+    background-color: #10b981 !important;
+  }
+
+  .swal2-icon.swal2-success .swal2-success-ring {
+    border-color: rgba(16, 185, 129, 0.3) !important;
+  }
+
+  .swal2-icon.swal2-error {
+    border-color: rgba(239, 68, 68, 0.5) !important;
+  }
+
+  .swal2-icon.swal2-error [class^='swal2-x-mark-line'] {
+    background-color: #ef4444 !important;
+  }
+
+  .swal2-icon.swal2-warning {
+    border-color: rgba(245, 158, 11, 0.5) !important;
+    color: #f59e0b !important;
+  }
+
+  .swal2-icon.swal2-info {
+    border-color: rgba(59, 130, 246, 0.5) !important;
+    color: #3b82f6 !important;
+  }
+
+  .swal2-icon.swal2-question {
+    border-color: rgba(6, 182, 212, 0.5) !important;
+    color: #06b6d4 !important;
+  }
+
+  /* Input fields in SweetAlert modals */
+  .swal2-input, .swal2-textarea {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(139, 92, 246, 0.3) !important;
+    border-radius: 8px !important;
+    color: #f8fafc !important;
+    padding: 12px 16px !important;
+  }
+
+  .swal2-input:focus, .swal2-textarea:focus {
+    border-color: rgba(139, 92, 246, 0.6) !important;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2) !important;
+    outline: none !important;
+  }
+
+  .swal2-input::placeholder, .swal2-textarea::placeholder {
+    color: #64748b !important;
+  }
+
+  /* Validation message */
+  .swal2-validation-message {
+    background: rgba(239, 68, 68, 0.1) !important;
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    color: #fca5a5 !important;
+  }
+
+  /* Close button */
+  .swal2-close {
+    color: #94a3b8 !important;
+    transition: all 0.3s ease !important;
+  }
+
+  .swal2-close:hover {
+    color: #f8fafc !important;
+    text-shadow: 0 0 10px rgba(139, 92, 246, 0.6) !important;
+  }
+
+  /* Progress steps */
+  .swal2-progress-steps .swal2-progress-step {
+    background: rgba(139, 92, 246, 0.3) !important;
+  }
+
+  .swal2-progress-steps .swal2-progress-step.swal2-active-progress-step {
+    background: #8b5cf6 !important;
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.6) !important;
+  }
+
+  /* Toast notifications */
+  .swal2-toast {
+    background: rgba(15, 15, 35, 0.98) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(139, 92, 246, 0.3) !important;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3) !important;
+  }
+}
+
+/* ============================================
+   ChatKit Purple Theme Customization (T060)
+   ============================================ */
+
+/* ChatKit widget container styling */
+.chatkit-purple-theme {
+  /* Override ChatKit default colors with purple theme */
+  --chatkit-primary: #a855f7; /* purple-500 */
+  --chatkit-primary-hover: #9333ea; /* purple-600 */
+  --chatkit-accent: #8b5cf6; /* purple-600 */
+  --chatkit-border: rgba(168, 85, 247, 0.3); /* purple with transparency */
+  --chatkit-background: rgba(17, 24, 39, 0.6); /* glass effect */
+  --chatkit-surface: #374151; /* gray-700 */
+  --chatkit-text: #f9fafb; /* gray-50 */
+  --chatkit-text-secondary: #d1d5db; /* gray-300 */
+  --chatkit-text-muted: #9ca3af; /* gray-400 */
+}
+
+/* ChatKit message bubbles */
+.chatkit-purple-theme .chatkit-message-user {
+  background: linear-gradient(135deg, #9333ea, #a855f7) !important;
+  color: #fff !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.3) !important;
+}
+
+.chatkit-purple-theme .chatkit-message-assistant {
+  background: rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(168, 85, 247, 0.2) !important;
+  border-radius: 1rem !important;
+  color: #f9fafb !important;
+}
+
+/* ChatKit input field */
+.chatkit-purple-theme .chatkit-input {
+  background: rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(168, 85, 247, 0.3) !important;
+  border-radius: 1rem !important;
+  color: #f9fafb !important;
+  padding: 12px 16px !important;
+  transition: all 0.3s ease !important;
+}
+
+.chatkit-purple-theme .chatkit-input:focus {
+  border-color: #a855f7 !important;
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2) !important;
+  outline: none !important;
+}
+
+.chatkit-purple-theme .chatkit-input::placeholder {
+  color: #9ca3af !important;
+}
+
+/* ChatKit send button with purple glow */
+.chatkit-purple-theme .chatkit-send-button {
+  background: linear-gradient(135deg, #9333ea, #a855f7) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 0.75rem !important;
+  padding: 10px 16px !important;
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.4) !important;
+  transition: all 0.3s ease !important;
+}
+
+.chatkit-purple-theme .chatkit-send-button:hover {
+  background: linear-gradient(135deg, #7e22ce, #9333ea) !important;
+  box-shadow: 0 0 30px rgba(168, 85, 247, 0.6) !important;
+  transform: scale(1.05) !important;
+}
+
+.chatkit-purple-theme .chatkit-send-button:active {
+  transform: scale(0.98) !important;
+}
+
+/* ChatKit loading indicator */
+.chatkit-purple-theme .chatkit-loading {
+  color: #a855f7 !important;
+}
+
+/* ChatKit scrollbar */
+.chatkit-purple-theme::-webkit-scrollbar {
+  width: 8px !important;
+}
+
+.chatkit-purple-theme::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-radius: 4px !important;
+}
+
+.chatkit-purple-theme::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.4) !important;
+  border-radius: 4px !important;
+  transition: all 0.3s ease !important;
+}
+
+.chatkit-purple-theme::-webkit-scrollbar-thumb:hover {
+  background: rgba(168, 85, 247, 0.6) !important;
+}
+
+/* ChatKit error messages */
+.chatkit-purple-theme .chatkit-error {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  border-radius: 0.75rem !important;
+  color: #fca5a5 !important;
+  padding: 12px !important;
+}
+
+/* ChatKit timestamp */
+.chatkit-purple-theme .chatkit-timestamp {
+  color: #9ca3af !important;
+  font-size: 0.75rem !important;
+}
+
+/* ChatKit avatar */
+.chatkit-purple-theme .chatkit-avatar {
+  border: 2px solid rgba(168, 85, 247, 0.3) !important;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.2) !important;
+}
+
+/* ChatKit typing indicator */
+.chatkit-purple-theme .chatkit-typing-indicator {
+  color: #a855f7 !important;
+}
+
+.chatkit-purple-theme .chatkit-typing-indicator span {
+  background: #a855f7 !important;
+}

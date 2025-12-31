@@ -1,0 +1,7 @@
+# Zustand Stores Directory
+
+This directory contains Zustand state management stores:
+- taskStore.ts: Task state (NO localStorage - uses backend API)
+- filterStore.ts: Filter state (WITH localStorage persistence)
+- sortStore.ts: Sort state (WITH localStorage persistence)
+- notificationStore.ts: Notification state (WITH localStorage persistence)

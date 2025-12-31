@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools"
+
+[project]
+name = "todo-app"
+version = "0.1.0"
+description = "A command-line Todo application with in-memory storage"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "rich>=13.0.0",
+    "pytest>=7.0.0"
+]
+
+[project.scripts]
+todo-app = "src.todo_app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

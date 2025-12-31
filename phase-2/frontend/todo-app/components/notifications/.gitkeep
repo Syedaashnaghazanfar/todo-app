@@ -1,0 +1,6 @@
+# Notification Components Directory
+
+This directory contains all notification-related UI components:
+- NotificationBell.tsx
+- NotificationDropdown.tsx
+- NotificationItem.tsx
