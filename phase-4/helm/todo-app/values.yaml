@@ -1,0 +1,175 @@
+# Default values for todo-app (Development environment)
+# This is a YAML-formatted file.
+
+# Global settings
+global:
+  environment: development
+
+# Backend configuration
+backend:
+  replicaCount: 2
+
+  image:
+    repository: todo-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8000
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+  # Health probes
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  # Environment variables from ConfigMap
+  env:
+    LLM_PROVIDER: openai
+    CORS_ORIGINS: "http://localhost:3000,http://todo-app.local"
+    ENVIRONMENT: development
+
+  # Autoscaling (disabled by default for dev)
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+# Frontend configuration
+frontend:
+  replicaCount: 2
+
+  image:
+    repository: todo-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 3000
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi
+
+  # Health probes
+  livenessProbe:
+    httpGet:
+      path: /api/health
+      port: 3000
+    initialDelaySeconds: 45
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /api/health
+      port: 3000
+    initialDelaySeconds: 15
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  # Environment variables from ConfigMap
+  env:
+    NEXT_PUBLIC_API_URL: "http://todo-backend:8000"
+    NEXT_PUBLIC_CHATKIT_URL: "http://todo-backend:8000/api/chatkit"
+    ENVIRONMENT: development
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  hosts:
+    - host: todo-app.local
+      paths:
+        - path: /api
+          pathType: Prefix
+          backend:
+            service: backend
+        - path: /
+          pathType: Prefix
+          backend:
+            service: frontend
+  tls: []
+  # Uncomment for production with TLS
+  # tls:
+  #   - secretName: todo-tls-cert
+  #     hosts:
+  #       - todo-app.local
+
+# Secrets (must be created separately)
+secrets:
+  # Reference to existing secret
+  name: todo-secrets
+  # Keys expected in secret:
+  # - database-url
+  # - openai-api-key
+  # - better-auth-secret
+
+# ConfigMap
+configMap:
+  name: todo-config
+
+# Security context
+securityContext:
+  backend:
+    runAsNonRoot: true
+    runAsUser: 10001
+    fsGroup: 10001
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+  frontend:
+    runAsNonRoot: true
+    runAsUser: 1001
+    fsGroup: 1001
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+# Pod annotations
+podAnnotations: {}
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
