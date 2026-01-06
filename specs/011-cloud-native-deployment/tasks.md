@@ -1,0 +1,442 @@
+# Tasks: Cloud Native Deployment
+
+**Input**: Design documents from `/specs/011-cloud-native-deployment/`
+**Prerequisites**: plan.md (technical stack, structure), spec.md (user stories P1-P3), contracts (infrastructure templates)
+
+**Organization**: Tasks are grouped by user story (P1: Minikube, P2: Production, P3: Multi-Env) to enable independent implementation and testing.
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: Can run in parallel (different files, no dependencies)
+- **[US1/US2/US3]**: User story this task belongs to
+- Include exact file paths in descriptions
+
+## Path Conventions
+
+```
+phase-4/
+├── backend/                           # Existing Phase 4 backend code
+├── frontend/todo-app/                 # Existing Phase 4 frontend code
+├── docker/backend/Dockerfile          # NEW: Backend container
+├── docker/frontend/Dockerfile         # NEW: Frontend container
+├── helm/todo-app/                     # NEW: Helm chart directory
+├── scripts/                           # NEW: Automation scripts
+└── docs/                              # NEW: Deployment documentation
+```
+
+---
+
+## Phase 1: Setup (Shared Infrastructure)
+
+**Purpose**: Create infrastructure subdirectories in existing phase-4/ and prepare development environment
+
+- [ ] T001 Create docker/ subdirectory in phase-4/ with backend/ and frontend/ folders
+- [X] T002 Create helm/ subdirectory in phase-4/ for Helm chart
+- [X] T003 Create scripts/ subdirectory in phase-4/ for automation
+- [ ] T004 Create docs/ subdirectory in phase-4/ for deployment documentation
+- [ ] T005 Create .dockerignore in phase-4/docker/backend/ excluding .venv, __pycache__, *.pyc, tests/, .git
+- [ ] T006 Create .dockerignore in phase-4/docker/frontend/ excluding node_modules/, .next/, .git, *.md, tests/
+- [ ] T007 Verify Minikube installation (minikube version) and document version requirements in phase-4/docs/MINIKUBE.md
+- [ ] T008 Verify Helm installation (helm version) and document version requirements in phase-4/docs/MINIKUBE.md
+- [ ] T009 Verify Docker installation (docker --version) and document version requirements in phase-4/docs/MINIKUBE.md
+- [ ] T010 Verify kubectl installation (kubectl version --client) and document version requirements in phase-4/docs/MINIKUBE.md
+
+---
+
+## Phase 2: Foundational (Blocking Prerequisites)
+
+**Purpose**: Core infrastructure components required for ALL user stories
+
+**⚠️ CRITICAL**: Must complete before any user story implementation
+
+- [X] T011 Configure Next.js standalone output in phase-4/frontend/todo-app/next.config.ts (add output: 'standalone')
+- [X] T012 Verify Phase 4 backend requirements.txt exists at phase-4/backend/requirements.txt for Docker layer caching
+- [X] T013 Verify Phase 4 frontend package.json and package-lock.json exist at phase-4/frontend/todo-app/ for Docker layer caching
+- [ ] T014 Document DATABASE_URL, OPENAI_API_KEY, BETTER_AUTH_SECRET secret requirements in phase-4/docs/SECRETS.md
+- [ ] T015 Copy secret-template.yaml from specs/011-cloud-native-deployment/contracts/ to phase-4/helm/todo-app/templates/ as reference
+
+**Checkpoint**: Foundation ready - user story implementation can now begin in parallel
+
+---
+
+## Phase 3: User Story 1 - Local Development with Minikube (Priority: P1) 🎯 MVP
+
+**Goal**: Enable developers to run complete Todo app stack on local Minikube cluster
+
+**Independent Test**: Run `helm install todo-app ./helm/todo-app` on Minikube, access app via `kubectl port-forward svc/todo-frontend 3000:3000`, create task via ChatKit
+
+### Backend Containerization (US1)
+
+- [X] T016 [P] [US1] Create multi-stage Dockerfile at phase-4/docker/backend/Dockerfile
+- [X] T017 [P] [US1] Add Stage 1 (deps) in backend Dockerfile: FROM python:3.12-slim AS deps, WORKDIR /app
+- [X] T018 [P] [US1] Add non-root user creation in deps stage: RUN adduser --disabled-password --gecos "" --uid 10001 --no-create-home appuser
+- [X] T019 [P] [US1] Add requirements install in deps stage: COPY phase-4/backend/requirements.txt ./ && RUN pip install --no-cache-dir -r requirements.txt
+- [ ] T020 [P] [US1] Add ownership change in deps stage: RUN chown -R appuser:appuser /app
+- [X] T021 [P] [US1] Add Stage 2 (runtime) in backend Dockerfile: FROM python:3.12-slim AS runtime
+- [X] T022 [P] [US1] Copy user/group from deps stage: COPY --from=deps /etc/passwd /etc/passwd && COPY --from=deps /etc/group /etc/group
+- [X] T023 [P] [US1] Copy installed dependencies from deps stage to runtime stage
+- [X] T024 [P] [US1] Copy application source: COPY --chown=appuser:appuser phase-4/backend/src ./src
+- [X] T025 [P] [US1] Copy Alembic migrations: COPY --chown=appuser:appuser phase-4/backend/alembic ./alembic
+- [X] T026 [P] [US1] Switch to non-root user: USER appuser
+- [X] T027 [P] [US1] Add EXPOSE 8000 and CMD ["fastapi", "run", "src/backend/main.py", "--host", "0.0.0.0", "--port", "8000"]
+
+### Frontend Containerization (US1)
+
+- [X] T028 [P] [US1] Create multi-stage Dockerfile at phase-4/docker/frontend/Dockerfile
+- [X] T029 [P] [US1] Add Stage 1 (deps) in frontend Dockerfile: FROM node:20-alpine AS deps, WORKDIR /app
+- [X] T030 [P] [US1] Copy package files in deps stage: COPY phase-4/frontend/todo-app/package*.json ./
+- [ ] T031 [P] [US1] Install production dependencies in deps stage: RUN npm ci --omit=dev && npm cache clean --force
+- [X] T032 [P] [US1] Add Stage 2 (builder) in frontend Dockerfile: FROM node:20-alpine AS builder
+- [X] T033 [P] [US1] Install all dependencies in builder stage: RUN npm ci && npm cache clean --force
+- [X] T034 [P] [US1] Copy application source in builder stage: COPY phase-4/frontend/todo-app ./
+- [X] T035 [P] [US1] Build Next.js with standalone output: RUN npm run build
+- [X] T036 [P] [US1] Add Stage 3 (runtime) in frontend Dockerfile: FROM node:20-alpine AS runtime
+- [X] T037 [P] [US1] Create non-root user in runtime stage: RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001 -G nodejs
+- [X] T038 [P] [US1] Copy standalone output: COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+- [X] T039 [P] [US1] Copy static files: COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+- [X] T040 [P] [US1] Copy public directory: COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+- [X] T041 [P] [US1] Switch to non-root user: USER nextjs
+- [X] T042 [P] [US1] Add EXPOSE 3000 and CMD ["node", "server.js"]
+
+### Docker Image Build and Validation (US1)
+
+- [X] T043 [US1] Build backend Docker image: docker build -f phase-4/docker/backend/Dockerfile -t todo-backend:latest .
+- [X] T044 [US1] Verify backend image size <200MB: docker images todo-backend:latest (check SIZE column)
+- [X] T045 [US1] Verify backend non-root user: docker run --rm todo-backend:latest id (expect uid=10001(appuser))
+- [X] T046 [US1] Build frontend Docker image: docker build -f phase-4/docker/frontend/Dockerfile -t todo-frontend:latest .
+- [X] T047 [US1] Verify frontend image size <150MB: docker images todo-frontend:latest (check SIZE column)
+- [X] T048 [US1] Verify frontend non-root user: docker run --rm todo-frontend:latest id (expect uid=1001(nextjs))
+
+### Helm Chart Scaffolding (US1)
+
+- [X] T049 [US1] Create Helm chart scaffold: helm create phase-4/helm/todo-app
+- [X] T050 [US1] Update Chart.yaml with metadata: name=todo-app, version=1.0.0, appVersion=1.0.0, description="Cloud-native deployment for Todo AI Chatbot"
+- [ ] T051 [US1] Remove default templates: delete phase-4/helm/todo-app/templates/serviceaccount.yaml, hpa.yaml, ingress.yaml (will recreate)
+- [X] T052 [P] [US1] Create _helpers.tpl with chart.name, chart.fullname, chart.labels, todo-app.selectorLabels template functions
+- [X] T053 [P] [US1] Create templates/deployment-backend.yaml from contract specs/011-cloud-native-deployment/contracts/deployment-backend.yaml
+- [X] T054 [P] [US1] Create templates/deployment-frontend.yaml from contract specs/011-cloud-native-deployment/contracts/deployment-frontend.yaml
+- [X] T055 [P] [US1] Create templates/service-backend.yaml from contract specs/011-cloud-native-deployment/contracts/service-backend.yaml
+- [X] T056 [P] [US1] Create templates/service-frontend.yaml from contract specs/011-cloud-native-deployment/contracts/service-frontend.yaml
+- [X] T057 [P] [US1] Create templates/secret.yaml with templated DATABASE_URL, OPENAI_API_KEY, BETTER_AUTH_SECRET
+- [X] T058 [P] [US1] Create templates/configmap.yaml with templated FRONTEND_URL, LLM_PROVIDER, environment
+- [ ] T059 [P] [US1] Create templates/NOTES.txt with post-install instructions (kubectl get pods, kubectl port-forward commands)
+
+### Helm Values Configuration (US1 - Development)
+
+- [X] T060 [US1] Configure values.yaml for development: environment=development, replicaCount=1 for backend/frontend
+- [X] T061 [US1] Set backend resources in values.yaml: requests cpu=100m mem=256Mi, limits cpu=500m mem=1Gi
+- [X] T062 [US1] Set frontend resources in values.yaml: requests cpu=50m mem=128Mi, limits cpu=250m mem=512Mi
+- [X] T063 [US1] Configure backend image in values.yaml: repository=todo-backend, tag=latest, pullPolicy=Never (for Minikube)
+- [X] T064 [US1] Configure frontend image in values.yaml: repository=todo-frontend, tag=latest, pullPolicy=Never (for Minikube)
+- [X] T065 [US1] Configure service ports in values.yaml: backend.port=8000, frontend.port=3000
+- [X] T066 [US1] Configure health probes in values.yaml: backend livenessProbe path=/api/v1/health initialDelay=30s, readinessProbe initialDelay=10s
+- [X] T067 [US1] Configure health probes in values.yaml: frontend livenessProbe path=/ initialDelay=45s, readinessProbe initialDelay=15s
+- [ ] T068 [US1] Disable ingress in values.yaml: ingress.enabled=false (use port-forward for US1)
+
+### Minikube Deployment Automation (US1)
+
+- [ ] T069 [P] [US1] Create scripts/minikube-setup.sh with minikube start --cpus 2 --memory 4096 --kubernetes-version=v1.25.0
+- [X] T070 [P] [US1] Add minikube addons enable ingress to minikube-setup.sh (for future US2 Ingress testing)
+- [X] T071 [P] [US1] Create scripts/build-images.sh with docker build commands for backend and frontend
+- [ ] T072 [P] [US1] Add minikube image load commands to build-images.sh for both images
+- [ ] T073 [P] [US1] Create scripts/deploy-dev.sh with kubectl create secret generic todo-secrets command
+- [ ] T074 [P] [US1] Add helm install todo-app ./phase-4/helm/todo-app --set environment=development to deploy-dev.sh
+- [ ] T075 [P] [US1] Add kubectl get pods -w to deploy-dev.sh for deployment monitoring
+- [ ] T076 [P] [US1] Make all scripts executable: chmod +x phase-4/scripts/*.sh
+
+### US1 Documentation
+
+- [ ] T077 [P] [US1] Create docs/MINIKUBE.md with prerequisites (Minikube 1.31+, kubectl 1.25+, Docker 20.10+, Helm 3.10+)
+- [ ] T078 [P] [US1] Document Minikube setup steps in MINIKUBE.md (start cluster, enable ingress addon)
+- [ ] T079 [P] [US1] Document Docker image build process in MINIKUBE.md with commands and expected output
+- [ ] T080 [P] [US1] Document secret creation in MINIKUBE.md: kubectl create secret generic todo-secrets --from-literal=database-url=... --from-literal=openai-api-key=... --from-literal=better-auth-secret=...
+- [ ] T081 [P] [US1] Document Helm installation in MINIKUBE.md: helm install todo-app ./phase-4/helm/todo-app
+- [ ] T082 [P] [US1] Document pod verification in MINIKUBE.md: kubectl get pods, kubectl describe pod, kubectl logs
+- [ ] T083 [P] [US1] Document port-forward access in MINIKUBE.md: kubectl port-forward svc/todo-frontend 3000:3000
+- [ ] T084 [P] [US1] Document troubleshooting in MINIKUBE.md: ImagePullBackOff, CrashLoopBackOff, pending pods
+
+### US1 End-to-End Testing
+
+- [X] T085 [US1] Run minikube-setup.sh and verify cluster starts successfully
+- [X] T086 [US1] Run build-images.sh and verify both images build with size targets met (<200MB backend, <150MB frontend)
+- [X] T087 [US1] Load images to Minikube: minikube image load todo-backend:latest && minikube image load todo-frontend:latest
+- [X] T088 [US1] Create secrets: kubectl create secret generic todo-secrets --from-literal=database-url=$DATABASE_URL --from-literal=openai-api-key=$OPENAI_API_KEY --from-literal=better-auth-secret=$BETTER_AUTH_SECRET
+- [X] T089 [US1] Deploy with Helm: helm install todo-app ./phase-4/helm/todo-app
+- [X] T090 [US1] Verify all pods reach Running state within 2 minutes: kubectl get pods -w
+- [X] T091 [US1] Verify backend pod is healthy: kubectl exec $(kubectl get pod -l component=backend -o jsonpath='{.items[0].metadata.name}') -- id (expect uid=10001)
+- [X] T092 [US1] Verify frontend pod is healthy: kubectl exec $(kubectl get pod -l component=frontend -o jsonpath='{.items[0].metadata.name}') -- id (expect uid=1001)
+- [X] T093 [US1] Port-forward to frontend: kubectl port-forward svc/todo-frontend 3000:3000 (run in background)
+- [X] T094 [US1] Access app at http://localhost:3000 and verify Next.js UI loads
+- [X] T095 [US1] Create task via ChatKit and verify it persists (test database connectivity)
+- [ ] T096 [US1] Simulate pod crash: kubectl delete pod -l component=backend
+- [ ] T097 [US1] Verify Kubernetes automatically recreates pod and app recovers within 10 seconds
+- [ ] T098 [US1] Verify conversation history persists after pod restart
+- [ ] T099 [US1] Rebuild backend image with code change, reload to Minikube, rollout restart, verify update deploys <90s
+
+**Checkpoint**: ✅ User Story 1 COMPLETE - Minikube development workflow functional
+
+---
+
+## Phase 4: User Story 2 - Production Deployment to Kubernetes Cluster (Priority: P2)
+
+**Goal**: Deploy Todo app to production K8s cluster with resource limits, health probes, autoscaling, and Ingress
+
+**Independent Test**: Deploy `helm install todo-app ./helm/todo-app -f values-production.yaml` to production cluster, verify HPA scales replicas, Ingress exposes app at https://todo-app.example.com
+
+### Kubernetes Production Manifests (US2)
+
+- [ ] T100 [P] [US2] Create templates/ingress.yaml from contract specs/011-cloud-native-deployment/contracts/ingress.yaml
+- [ ] T101 [P] [US2] Configure Ingress in templates/ingress.yaml with path-based routing: /api → backend, / → frontend
+- [ ] T102 [P] [US2] Add TLS configuration to Ingress template with secretName={{ .Values.ingress.tls.secretName }} and hosts
+- [ ] T103 [P] [US2] Add nginx annotations to Ingress: nginx.ingress.kubernetes.io/rewrite-target and ssl-redirect
+- [ ] T104 [P] [US2] Create templates/hpa-backend.yaml from contract specs/011-cloud-native-deployment/contracts/hpa-backend.yaml
+- [ ] T105 [P] [US2] Configure HPA with minReplicas=2, maxReplicas=10, CPU target=70%, memory target=800Mi
+- [ ] T106 [P] [US2] Add scaleDown behavior with stabilizationWindowSeconds=300 to prevent thrashing
+- [ ] T107 [P] [US2] Add scaleUp behavior with stabilizationWindowSeconds=0 for quick response
+
+### Production Values Configuration (US2)
+
+- [ ] T108 [P] [US2] Create values-production.yaml with environment=production, replicaCount=2 for backend/frontend
+- [ ] T109 [P] [US2] Set production resource limits in values-production.yaml: backend mem=1Gi cpu=500m, frontend mem=512Mi cpu=250m
+- [ ] T110 [P] [US2] Configure production image pull policy: pullPolicy=Always (from registry, not local)
+- [ ] T111 [P] [US2] Enable ingress in values-production.yaml: ingress.enabled=true, ingress.host=todo-app.example.com
+- [ ] T112 [P] [US2] Configure TLS in values-production.yaml: ingress.tls.enabled=true, secretName=todo-tls-secret
+- [ ] T113 [P] [US2] Configure production database URL in values-production.yaml using Neon production connection string
+- [ ] T114 [P] [US2] Configure production API URL in values-production.yaml: api-url=https://todo-app.example.com/api/v1
+
+### Production Deployment Automation (US2)
+
+- [ ] T115 [P] [US2] Create scripts/deploy-prod.sh with kubectl config use-context production
+- [ ] T116 [P] [US2] Add Docker registry login to deploy-prod.sh: docker login (assumes GHCR or Docker Hub)
+- [ ] T117 [P] [US2] Add Docker image tagging in deploy-prod.sh: docker tag todo-backend:latest <registry>/todo-backend:$VERSION
+- [ ] T118 [P] [US2] Add Docker image push in deploy-prod.sh: docker push <registry>/todo-backend:$VERSION && docker push <registry>/todo-frontend:$VERSION
+- [ ] T119 [P] [US2] Add production secret creation in deploy-prod.sh (if not using external secrets manager)
+- [ ] T120 [P] [US2] Add Helm upgrade command in deploy-prod.sh: helm upgrade --install todo-app ./phase-4/helm/todo-app -f values-production.yaml --set image.tag=$VERSION
+- [ ] T121 [P] [US2] Add rollout status check in deploy-prod.sh: kubectl rollout status deployment/todo-backend && kubectl rollout status deployment/todo-frontend
+
+### US2 Documentation
+
+- [ ] T122 [P] [US2] Create docs/DEPLOYMENT.md with production prerequisites (Kubernetes cluster, kubectl access, Helm, container registry)
+- [ ] T123 [P] [US2] Document container registry setup in DEPLOYMENT.md (GHCR or Docker Hub authentication)
+- [ ] T124 [P] [US2] Document TLS certificate creation in DEPLOYMENT.md: kubectl create secret tls todo-tls-secret --cert=path/to/cert --key=path/to/key
+- [ ] T125 [P] [US2] Document production secrets in DEPLOYMENT.md using kubectl create secret or external secrets manager integration
+- [ ] T126 [P] [US2] Document Helm deployment in DEPLOYMENT.md with values-production.yaml overrides
+- [ ] T127 [P] [US2] Document Ingress verification in DEPLOYMENT.md: kubectl get ingress, curl https://todo-app.example.com
+- [ ] T128 [P] [US2] Document HPA monitoring in DEPLOYMENT.md: kubectl get hpa todo-backend-hpa -w
+- [ ] T129 [P] [US2] Document scaling verification in DEPLOYMENT.md: generate load, observe HPA scale-up
+
+### US2 Production Testing
+
+- [ ] T130 [US2] Tag and push Docker images to container registry
+- [ ] T131 [US2] Create TLS secret in production cluster: kubectl create secret tls todo-tls-secret --cert=... --key=...
+- [ ] T132 [US2] Create production secrets: kubectl create secret generic todo-secrets with production DATABASE_URL, OPENAI_API_KEY, BETTER_AUTH_SECRET
+- [ ] T133 [US2] Deploy to production: helm install todo-app ./phase-4/helm/todo-app -f values-production.yaml
+- [ ] T134 [US2] Verify pods start with correct replica counts: kubectl get pods (expect 2 backend, 2 frontend)
+- [ ] T135 [US2] Verify resource limits enforced: kubectl describe pod <backend-pod> (check Limits section)
+- [ ] T136 [US2] Verify health probes configured: kubectl describe pod <backend-pod> (check Liveness/Readiness)
+- [ ] T137 [US2] Simulate pod failure: kubectl delete pod -l component=backend --force
+- [ ] T138 [US2] Verify liveness probe restarts pod and removes from service rotation within 10 seconds
+- [ ] T139 [US2] Generate CPU load on backend pods and verify HPA scales from 2 to 4 replicas within 60 seconds
+- [ ] T140 [US2] Access app via Ingress at https://todo-app.example.com and verify TLS certificate validates
+- [ ] T141 [US2] Verify secrets not visible in manifests: kubectl get deployment todo-backend -o yaml | grep -i secret (should only see secretKeyRef, not values)
+- [ ] T142 [US2] Test graceful shutdown: kubectl delete pod <backend-pod> during active ChatKit session, verify session persists
+
+**Checkpoint**: ✅ User Story 2 COMPLETE - Production deployment with autoscaling and Ingress functional
+
+---
+
+## Phase 5: User Story 3 - Multi-Environment Configuration with Helm (Priority: P3)
+
+**Goal**: Manage dev/staging/production environments using single Helm chart with environment-specific value overrides
+
+**Independent Test**: Deploy chart to 3 namespaces with different values files, verify environment-specific configs apply correctly
+
+### Staging Environment Configuration (US3)
+
+- [ ] T143 [P] [US3] Create values-staging.yaml with environment=staging, replicaCount=2
+- [ ] T144 [P] [US3] Set staging resource limits in values-staging.yaml: backend mem=512Mi cpu=250m, frontend mem=256Mi cpu=125m (between dev and prod)
+- [ ] T145 [P] [US3] Configure staging Ingress in values-staging.yaml: ingress.host=staging.todo-app.example.com
+- [ ] T146 [P] [US3] Configure staging database URL in values-staging.yaml using Neon staging connection string or dedicated staging DB
+- [ ] T147 [P] [US3] Configure staging API URL in values-staging.yaml: api-url=https://staging.todo-app.example.com/api/v1
+
+### Multi-Environment Helm Template Enhancements (US3)
+
+- [ ] T148 [P] [US3] Add conditional logic to templates/ingress.yaml: {{ if .Values.ingress.enabled }} to support ingress toggle
+- [ ] T149 [P] [US3] Add environment labels to all templates using {{ .Values.environment }} for filtering and monitoring
+- [ ] T150 [P] [US3] Parameterize replica counts in templates using {{ .Values.backend.replicaCount }} and {{ .Values.frontend.replicaCount }}
+- [ ] T151 [P] [US3] Parameterize resource limits in templates using {{ .Values.backend.resources.limits.memory }} etc
+- [ ] T152 [P] [US3] Parameterize Ingress host in templates using {{ .Values.ingress.host }}
+- [ ] T153 [P] [US3] Add namespace parameter to values files for environment isolation: {{ .Values.namespace }}
+
+### US3 Documentation
+
+- [ ] T154 [P] [US3] Create docs/ENVIRONMENTS.md documenting 3-environment strategy (dev, staging, prod)
+- [ ] T155 [P] [US3] Document environment-specific values in ENVIRONMENTS.md with comparison table (replicas, resources, ingress)
+- [ ] T156 [P] [US3] Document deployment commands in ENVIRONMENTS.md: helm install -f values-dev.yaml, helm install -f values-staging.yaml, helm install -f values-production.yaml
+- [ ] T157 [P] [US3] Document cost optimization in ENVIRONMENTS.md: dev uses <25% prod resources, staging ~50%
+- [ ] T158 [P] [US3] Document promotion workflow in ENVIRONMENTS.md: test in dev → deploy staging → verify → deploy production
+
+### US3 Multi-Environment Testing
+
+- [ ] T159 [US3] Create development namespace: kubectl create namespace todo-dev
+- [ ] T160 [US3] Create staging namespace: kubectl create namespace todo-staging
+- [ ] T161 [US3] Create production namespace: kubectl create namespace todo-production
+- [ ] T162 [US3] Deploy to dev namespace: helm install todo-app-dev ./phase-4/helm/todo-app -f values.yaml -n todo-dev
+- [ ] T163 [US3] Deploy to staging namespace: helm install todo-app-staging ./phase-4/helm/todo-app -f values-staging.yaml -n todo-staging
+- [ ] T164 [US3] Deploy to production namespace: helm install todo-app-prod ./phase-4/helm/todo-app -f values-production.yaml -n todo-production
+- [ ] T165 [US3] Verify dev environment uses minimal resources: kubectl top pods -n todo-dev (expect <256Mi total)
+- [ ] T166 [US3] Verify staging environment uses moderate resources: kubectl top pods -n todo-staging (expect ~512Mi total)
+- [ ] T167 [US3] Verify production environment uses full resources: kubectl top pods -n todo-production (expect ~2Gi total)
+- [ ] T168 [US3] Verify environment-specific Ingress hosts: kubectl get ingress -n todo-staging (expect staging.todo-app.example.com)
+- [ ] T169 [US3] Verify environment labels applied: kubectl get pods -n todo-dev -l environment=development
+- [ ] T170 [US3] Test configuration drift prevention: modify template, upgrade all 3 environments, verify consistent behavior
+
+**Checkpoint**: ✅ User Story 3 COMPLETE - Multi-environment configuration with Helm functional
+
+---
+
+## Phase 6: Polish & Cross-Cutting Concerns
+
+**Purpose**: Documentation, troubleshooting guides, and final validation
+
+### Comprehensive Documentation
+
+- [ ] T171 [P] Create docs/ARCHITECTURE.md with cloud-native architecture diagram (Minikube/Production, pods, services, ingress, HPA)
+- [ ] T172 [P] Document container build workflow in ARCHITECTURE.md (multi-stage builds, layer caching, non-root users)
+- [ ] T173 [P] Document Kubernetes resource relationships in ARCHITECTURE.md (Deployment → ReplicaSet → Pods, Service → Endpoints)
+- [ ] T174 [P] Document Helm chart structure in ARCHITECTURE.md (templates/, values.yaml, _helpers.tpl organization)
+- [ ] T175 [P] Create docs/TROUBLESHOOTING.md with common issues and solutions
+- [ ] T176 [P] Document ImagePullBackOff troubleshooting in TROUBLESHOOTING.md (check imagePullPolicy, minikube image load, registry auth)
+- [ ] T177 [P] Document CrashLoopBackOff troubleshooting in TROUBLESHOOTING.md (kubectl logs, kubectl describe pod, check secrets)
+- [ ] T178 [P] Document pending pods troubleshooting in TROUBLESHOOTING.md (resource constraints, node selector, PVC issues)
+- [ ] T179 [P] Document health probe failures in TROUBLESHOOTING.md (check endpoints, initialDelaySeconds, database connectivity)
+- [ ] T180 [P] Document HPA not scaling in TROUBLESHOOTING.md (metrics-server installation, resource requests missing)
+
+### Helm Chart Validation
+
+- [ ] T181 Run helm lint on chart: helm lint ./phase-4/helm/todo-app (fix any warnings or errors)
+- [ ] T182 Run helm template to verify rendering: helm template todo-app ./phase-4/helm/todo-app (check output for placeholders)
+- [ ] T183 Run helm template with values files: helm template todo-app ./phase-4/helm/todo-app -f values-production.yaml --debug
+- [ ] T184 Verify no hard-coded values in templates (all use {{ .Values.* }} templating)
+- [ ] T185 Verify _helpers.tpl functions work correctly: helm template and check labels match expected pattern
+
+### Final Integration Testing
+
+- [ ] T186 Clean Minikube environment: helm uninstall todo-app, kubectl delete namespace todo-dev todo-staging
+- [ ] T187 Fresh Minikube deployment following MINIKUBE.md documentation (verify docs are correct)
+- [ ] T188 Verify all 5 acceptance scenarios from US1 spec pass (pods start <2min, port-forward works, task creation, pod crash recovery, code update <90s)
+- [ ] T189 Verify all 5 acceptance scenarios from US2 spec pass (production deployment, health probes, HPA scaling, Ingress access, secrets injection)
+- [ ] T190 Verify all 5 acceptance scenarios from US3 spec pass (multi-env deployment, resource optimization, Ingress hosts, cost savings)
+- [ ] T191 Verify all 7 edge cases from spec handle gracefully (database failures, registry auth, HPA scaling, Helm upgrades, missing secrets, PVC failures, missing Ingress controller)
+- [ ] T192 Verify all 12 success criteria from spec meet targets (build times, image sizes, deploy time, startup time, recovery time, autoscaling time, resource usage, non-root users, zero secrets in images)
+
+### README and Quick Start
+
+- [ ] T193 [P] Create phase-4/README.md with project overview and quick start
+- [ ] T194 [P] Document prerequisites in README.md (Minikube, kubectl, Docker, Helm versions)
+- [ ] T195 [P] Add quick start commands in README.md (build images, start Minikube, deploy with Helm)
+- [ ] T196 [P] Link to detailed documentation in README.md (MINIKUBE.md, DEPLOYMENT.md, ENVIRONMENTS.md, TROUBLESHOOTING.md, ARCHITECTURE.md)
+- [ ] T197 [P] Add project structure overview in README.md showing docker/, helm/, scripts/, docs/ organization
+- [ ] T198 [P] Add success criteria checklist in README.md for verification
+
+**Checkpoint**: ✅ Phase 4 Cloud Native Deployment COMPLETE - All user stories tested and documented
+
+---
+
+## Task Summary
+
+**Total Tasks**: 198
+**User Story 1 (P1 - Minikube)**: 84 tasks (T016-T099)
+**User Story 2 (P2 - Production)**: 43 tasks (T100-T142)
+**User Story 3 (P3 - Multi-Env)**: 28 tasks (T143-T170)
+**Setup & Foundation**: 15 tasks (T001-T015)
+**Polish & Documentation**: 28 tasks (T171-T198)
+
+## Dependencies & Execution Order
+
+### Sequential Phases (Must Complete in Order)
+1. ✅ Phase 1 (Setup) → Phase 2 (Foundation) → Phase 3+ (User Stories)
+2. ✅ User Story 1 (P1) MUST complete before User Story 2 (P2)
+3. ✅ User Story 2 (P2) MUST complete before User Story 3 (P3)
+
+### Parallel Opportunities Within Phases
+
+**Phase 1 (Setup)**: All tasks T001-T010 can run in parallel (directory creation, tool verification)
+
+**Phase 2 (Foundation)**: Tasks T011-T015 can run in parallel (config changes, documentation)
+
+**Phase 3 (US1)**:
+- T016-T027 (Backend Dockerfile) can run parallel with T028-T042 (Frontend Dockerfile)
+- T052-T058 (Helm templates) can run in parallel after T049-T051 complete
+- T060-T068 (Values config) can run in parallel
+- T069-T076 (Scripts) can run in parallel
+- T077-T084 (Documentation) can run in parallel
+
+**Phase 4 (US2)**:
+- T100-T107 (K8s manifests) can run in parallel
+- T108-T114 (Production values) can run in parallel
+- T115-T121 (Deploy scripts) can run in parallel
+- T122-T129 (Documentation) can run in parallel
+
+**Phase 5 (US3)**:
+- T143-T147 (Staging values) can run in parallel
+- T148-T153 (Template enhancements) can run in parallel
+- T154-T158 (Documentation) can run in parallel
+
+**Phase 6 (Polish)**:
+- T171-T180 (Documentation) can run in parallel
+- T181-T185 (Helm validation) must run sequentially
+- T193-T198 (README) can run in parallel with T171-T180
+
+## Independent Testing Criteria
+
+**User Story 1 (P1)**:
+- ✅ Can test independently by running Minikube deployment workflow
+- ✅ No dependency on US2 or US3 - complete MVP
+- ✅ Success: `helm install` completes, app accessible via port-forward, task creation works
+
+**User Story 2 (P2)**:
+- ✅ Can test independently on production cluster
+- ✅ Requires US1 Dockerfiles and Helm chart (dependency)
+- ✅ Success: Production deployment with HPA scaling and Ingress access
+
+**User Story 3 (P3)**:
+- ✅ Can test independently by deploying to 3 namespaces
+- ✅ Requires US2 production patterns (dependency)
+- ✅ Success: Same chart deploys to dev/staging/prod with correct resource allocation
+
+## Implementation Strategy
+
+### MVP Delivery (Minimum Viable Product)
+**Scope**: User Story 1 ONLY (T001-T099)
+**Timeline**: First deliverable increment
+**Value**: Enables local Kubernetes development workflow immediately
+
+### Incremental Delivery
+1. **Sprint 1**: US1 (Tasks T001-T099) - Minikube development
+2. **Sprint 2**: US2 (Tasks T100-T142) - Production deployment
+3. **Sprint 3**: US3 (Tasks T143-T170) - Multi-environment configuration
+4. **Sprint 4**: Polish (Tasks T171-T198) - Documentation and validation
+
+### Verification Commands
+
+```bash
+# After Phase 3 (US1)
+helm install todo-app ./phase-4/helm/todo-app
+kubectl port-forward svc/todo-frontend 3000:3000
+
+# After Phase 4 (US2)
+helm install todo-app ./phase-4/helm/todo-app -f values-production.yaml
+curl https://todo-app.example.com
+
+# After Phase 5 (US3)
+helm install -f values-dev.yaml -n todo-dev
+helm install -f values-staging.yaml -n todo-staging
+helm install -f values-production.yaml -n todo-production
+```
+
+---
+
+**Generated**: 2026-01-04
+**Feature**: Cloud Native Deployment (011-cloud-native-deployment)
+**Ready for Implementation**: ✅ All tasks have specific file paths and clear acceptance criteria

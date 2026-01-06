@@ -1,0 +1,302 @@
+/**
+ * useTasks Hook
+ *
+ * Custom React hook for managing task state and operations with the backend API.
+ * Provides methods for CRUD operations, filtering, and error handling.
+ *
+ * @file hooks/useTasks.ts
+ * @see /specs/001-phase2-homepage-ui/ - Backend integration
+ */
+
+import { useState, useCallback, useEffect } from "react";
+import apiClient, { Task } from "@/services/api";
+
+/**
+ * Hook state
+ */
+interface UseTasksState {
+  tasks: Task[];
+  loading: boolean;
+  error: string | null;
+}
+
+/**
+ * Hook return value
+ */
+interface UseTasksReturn extends UseTasksState {
+  // Fetch operations
+  fetchTasks: () => Promise<void>;
+  getTask: (id: string) => Promise<Task>;
+
+  // Create/Update operations
+  createTask: (title: string, description?: string) => Promise<Task>;
+  updateTask: (id: string, title?: string, description?: string) => Promise<Task>;
+
+  // Status operations
+  completeTask: (id: string) => Promise<void>;
+  incompleteTask: (id: string) => Promise<void>;
+
+  // Delete operation
+  deleteTask: (id: string) => Promise<void>;
+
+  // Utility
+  getTaskById: (id: string) => Task | undefined;
+  getCompletedTasks: () => Task[];
+  getIncompleteTasks: () => Task[];
+  clearError: () => void;
+}
+
+/**
+ * Hook for managing tasks with backend integration
+ *
+ * @example
+ * ```tsx
+ * const {
+ *   tasks,
+ *   loading,
+ *   error,
+ *   fetchTasks,
+ *   createTask,
+ *   completeTask,
+ *   deleteTask,
+ * } = useTasks();
+ *
+ * useEffect(() => {
+ *   fetchTasks();
+ * }, [fetchTasks]);
+ *
+ * const handleCreate = async () => {
+ *   try {
+ *     await createTask("New Task", "Description");
+ *     await fetchTasks();
+ *   } catch (err) {
+ *     console.error("Failed to create task:", err);
+ *   }
+ * };
+ * ```
+ */
+export function useTasks(): UseTasksReturn {
+  const [state, setState] = useState<UseTasksState>({
+    tasks: [],
+    loading: false,
+    error: null,
+  });
+
+  /**
+   * Set error message
+   */
+  const setError = useCallback((error: string | null) => {
+    setState((prev) => ({ ...prev, error }));
+  }, []);
+
+  /**
+   * Clear error message
+   */
+  const clearError = useCallback(() => {
+    setError(null);
+  }, [setError]);
+
+  /**
+   * Fetch all tasks from backend
+   */
+  const fetchTasks = useCallback(async () => {
+    try {
+      setState((prev) => ({ ...prev, loading: true, error: null }));
+      const tasks = await apiClient.getTasks();
+      setState({
+        tasks,
+        loading: false,
+        error: null,
+      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to fetch tasks";
+      setState({
+        tasks: [],
+        loading: false,
+        error: errorMessage,
+      });
+    }
+  }, []);
+
+  /**
+   * Get single task by ID
+   */
+  const getTask = useCallback(
+    async (id: string): Promise<Task> => {
+      try {
+        setState((prev) => ({ ...prev, loading: true, error: null }));
+        const task = await apiClient.getTask(id);
+        setState((prev) => ({
+          ...prev,
+          tasks: [...prev.tasks.filter((t) => t.id !== id), task],
+          loading: false,
+        }));
+        return task;
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Failed to fetch task";
+        setState((prev) => ({ ...prev, loading: false, error: errorMessage }));
+        throw err;
+      }
+    },
+    []
+  );
+
+  /**
+   * Create new task
+   */
+  const createTask = useCallback(
+    async (title: string, description?: string): Promise<Task> => {
+      try {
+        setState((prev) => ({ ...prev, loading: true, error: null }));
+        const task = await apiClient.createTask(title, description);
+        setState((prev) => ({
+          ...prev,
+          tasks: [...prev.tasks, task],
+          loading: false,
+        }));
+        return task;
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Failed to create task";
+        setState((prev) => ({ ...prev, loading: false, error: errorMessage }));
+        throw err;
+      }
+    },
+    []
+  );
+
+  /**
+   * Update task
+   */
+  const updateTask = useCallback(
+    async (id: string, title?: string, description?: string): Promise<Task> => {
+      try {
+        setState((prev) => ({ ...prev, loading: true, error: null }));
+        const updates: { title?: string; description?: string } = {};
+        if (title !== undefined) updates.title = title;
+        if (description !== undefined) updates.description = description;
+
+        const task = await apiClient.updateTask(id, updates);
+        setState((prev) => ({
+          ...prev,
+          tasks: prev.tasks.map((t) => (t.id === id ? task : t)),
+          loading: false,
+        }));
+        return task;
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Failed to update task";
+        setState((prev) => ({ ...prev, loading: false, error: errorMessage }));
+        throw err;
+      }
+    },
+    []
+  );
+
+  /**
+   * Mark task as complete
+   */
+  const completeTask = useCallback(async (id: string): Promise<void> => {
+    try {
+      setState((prev) => ({ ...prev, loading: true, error: null }));
+      const task = await apiClient.completeTask(id);
+      setState((prev) => ({
+        ...prev,
+        tasks: prev.tasks.map((t) => (t.id === id ? task : t)),
+        loading: false,
+      }));
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to complete task";
+      setState((prev) => ({ ...prev, loading: false, error: errorMessage }));
+      throw err;
+    }
+  }, []);
+
+  /**
+   * Mark task as incomplete
+   */
+  const incompleteTask = useCallback(async (id: string): Promise<void> => {
+    try {
+      setState((prev) => ({ ...prev, loading: true, error: null }));
+      const task = await apiClient.incompleteTask(id);
+      setState((prev) => ({
+        ...prev,
+        tasks: prev.tasks.map((t) => (t.id === id ? task : t)),
+        loading: false,
+      }));
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to mark task incomplete";
+      setState((prev) => ({ ...prev, loading: false, error: errorMessage }));
+      throw err;
+    }
+  }, []);
+
+  /**
+   * Delete task
+   */
+  const deleteTask = useCallback(async (id: string): Promise<void> => {
+    try {
+      setState((prev) => ({ ...prev, loading: true, error: null }));
+      await apiClient.deleteTask(id);
+      setState((prev) => ({
+        ...prev,
+        tasks: prev.tasks.filter((t) => t.id !== id),
+        loading: false,
+      }));
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to delete task";
+      setState((prev) => ({ ...prev, loading: false, error: errorMessage }));
+      throw err;
+    }
+  }, []);
+
+  /**
+   * Utility: Get task by ID
+   */
+  const getTaskById = useCallback(
+    (id: string): Task | undefined => {
+      return state.tasks.find((t) => t.id === id);
+    },
+    [state.tasks]
+  );
+
+  /**
+   * Utility: Get completed tasks
+   */
+  const getCompletedTasks = useCallback((): Task[] => {
+    return state.tasks.filter((t) => t.is_completed);
+  }, [state.tasks]);
+
+  /**
+   * Utility: Get incomplete tasks
+   */
+  const getIncompleteTasks = useCallback((): Task[] => {
+    return state.tasks.filter((t) => !t.is_completed);
+  }, [state.tasks]);
+
+  return {
+    // State
+    tasks: state.tasks,
+    loading: state.loading,
+    error: state.error,
+
+    // Fetch operations
+    fetchTasks,
+    getTask,
+
+    // Create/Update operations
+    createTask,
+    updateTask,
+
+    // Status operations
+    completeTask,
+    incompleteTask,
+
+    // Delete operation
+    deleteTask,
+
+    // Utilities
+    getTaskById,
+    getCompletedTasks,
+    getIncompleteTasks,
+    clearError,
+  };
+}

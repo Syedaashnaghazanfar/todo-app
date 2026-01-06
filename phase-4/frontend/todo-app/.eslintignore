@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Generated files
+next-env.d.ts
+*.tsbuildinfo
+
+# Test coverage
+coverage/
+
+# Environment files
+.env*
+
+# Vercel
+.vercel/
+
+# Public assets
+public/
+
+# Config files
+next.config.ts
+jest.config.js
+jest.setup.js
+postcss.config.mjs
+tailwind.config.ts

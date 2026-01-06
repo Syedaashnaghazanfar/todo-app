@@ -1,0 +1,14 @@
+# Skills Directory
+
+This directory contains skill engine implementations for the Skills & Subagents Architecture.
+
+Each skill is a pure TypeScript function that implements specific business logic:
+- priority-classification.ts
+- task-tagging.ts
+- task-search.ts
+- task-filter.ts
+- task-sorting.ts
+- temporal-evaluation.ts
+- notification-trigger.ts
+- notification-persistence.ts
+- notification-ui.ts

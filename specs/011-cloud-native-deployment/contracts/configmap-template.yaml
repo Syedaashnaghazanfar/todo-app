@@ -1,0 +1,56 @@
+# Kubernetes ConfigMap for Non-Sensitive Configuration
+# IMPORTANT: This is a TEMPLATE file
+# Customize values for each environment (development, staging, production)
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: todo-config
+  labels:
+    app: todo-app
+    environment: development  # Change per environment
+data:
+  # Environment identifier
+  environment: "development"  # Options: development | staging | production
+
+  # LLM Provider Configuration
+  llm-provider: "openai"  # Options: openai | gemini | groq | openrouter
+
+  # CORS Origins (comma-separated list)
+  cors-origins: "http://localhost:3000,http://todo-app.local"
+
+  # Frontend Configuration (NEXT_PUBLIC_* variables)
+  next-public-api-url: "http://todo-backend:8000"
+  next-public-chatkit-url: "http://todo-backend:8000/api/chatkit"
+
+---
+# Staging ConfigMap Example
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: todo-config
+#   labels:
+#     app: todo-app
+#     environment: staging
+# data:
+#   environment: "staging"
+#   llm-provider: "openai"
+#   cors-origins: "https://staging.todo-app.example.com"
+#   next-public-api-url: "https://api.staging.todo-app.example.com"
+#   next-public-chatkit-url: "https://api.staging.todo-app.example.com/api/chatkit"
+
+---
+# Production ConfigMap Example
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: todo-config
+#   labels:
+#     app: todo-app
+#     environment: production
+# data:
+#   environment: "production"
+#   llm-provider: "openai"
+#   cors-origins: "https://todo-app.example.com"
+#   next-public-api-url: "https://api.todo-app.example.com"
+#   next-public-chatkit-url: "https://api.todo-app.example.com/api/chatkit"

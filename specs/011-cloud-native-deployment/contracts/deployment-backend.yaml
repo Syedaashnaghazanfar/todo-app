@@ -1,0 +1,126 @@
+# Kubernetes Deployment for FastAPI Backend
+# API Version: apps/v1 (stable)
+# Replicas: 2 (high availability)
+# Health Probes: liveness + readiness
+# Resources: limits and requests defined
+# Secrets: DATABASE_URL, OPENAI_API_KEY, BETTER_AUTH_SECRET
+# ConfigMaps: LLM_PROVIDER, CORS_ORIGINS, environment flags
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-backend
+  labels:
+    app: todo-app
+    component: backend
+    tier: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: todo-app
+      component: backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: todo-app
+        component: backend
+        tier: api
+    spec:
+      containers:
+      - name: backend
+        image: todo-backend:latest
+        imagePullPolicy: IfNotPresent
+
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+
+        # Environment variables from Secrets
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: todo-secrets
+              key: database-url
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: todo-secrets
+              key: openai-api-key
+        - name: BETTER_AUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: todo-secrets
+              key: better-auth-secret
+
+        # Environment variables from ConfigMap
+        - name: LLM_PROVIDER
+          valueFrom:
+            configMapKeyRef:
+              name: todo-config
+              key: llm-provider
+        - name: CORS_ORIGINS
+          valueFrom:
+            configMapKeyRef:
+              name: todo-config
+              key: cors-origins
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: todo-config
+              key: environment
+
+        # Resource limits and requests
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
+
+        # Liveness probe (restart if unhealthy)
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+
+        # Readiness probe (route traffic when ready)
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+
+        # Security context (non-root)
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 10001
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+
+      # Pod security context
+      securityContext:
+        fsGroup: 10001
+        runAsNonRoot: true

@@ -1,0 +1,93 @@
+# Staging environment values for todo-app
+
+# Global settings
+global:
+  environment: staging
+
+# Backend configuration
+backend:
+  replicaCount: 3
+
+  image:
+    repository: todo-backend
+    tag: "1.0.0-rc"
+    pullPolicy: Always
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+  env:
+    LLM_PROVIDER: openai
+    CORS_ORIGINS: "https://staging.todo-app.example.com"
+    ENVIRONMENT: staging
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 70
+
+# Frontend configuration
+frontend:
+  replicaCount: 3
+
+  image:
+    repository: todo-frontend
+    tag: "1.0.0-rc"
+    pullPolicy: Always
+
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+  env:
+    NEXT_PUBLIC_API_URL: "https://api.staging.todo-app.example.com"
+    NEXT_PUBLIC_CHATKIT_URL: "https://api.staging.todo-app.example.com/api/chatkit"
+    ENVIRONMENT: staging
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+  hosts:
+    - host: staging.todo-app.example.com
+      paths:
+        - path: /api
+          pathType: Prefix
+          backend:
+            service: backend
+        - path: /
+          pathType: Prefix
+          backend:
+            service: frontend
+  tls:
+    - secretName: todo-staging-tls
+      hosts:
+        - staging.todo-app.example.com
+
+# Pod anti-affinity for high availability
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - todo-app
+          topologyKey: kubernetes.io/hostname
