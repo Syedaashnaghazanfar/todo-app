@@ -119,6 +119,7 @@ class TodoAgent:
 
         # Create agent
         # ModelSettings(parallel_tool_calls=False) prevents database lock issues
+        # IMPORTANT: strict=False allows natural language responses (not just structured JSON)
         self.agent = Agent(
             name="TodoAgent",
             model=self.model,
@@ -126,6 +127,7 @@ class TodoAgent:
             mcp_servers=[self.mcp_server],
             model_settings=ModelSettings(
                 parallel_tool_calls=False,  # Prevent concurrent DB writes
+                strict=False,  # Disable strict structured outputs
             ),
         )
 

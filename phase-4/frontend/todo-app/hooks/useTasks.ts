@@ -22,6 +22,7 @@ import Swal from 'sweetalert2';
 import apiClient from '@/services/api';
 import type { Task as APITask } from '@/services/api';
 import type { Task, TaskStatus, Priority } from '@/types/task.types';
+import { syncNotifications, shouldNotifyForTask } from '@/lib/notifications/notificationSync';
 
 /**
  * Task creation data (without auto-computed fields)
@@ -173,12 +174,22 @@ export function useTasks(): UseTasksReturn {
         // Add to tasks list
         setTasks((prev) => [convertedTask, ...prev]);
 
+        // Sync notifications if task qualifies (VERY_IMPORTANT + due within 6h)
+        if (shouldNotifyForTask(createdTask.priority, createdTask.due_date || undefined)) {
+          // Don't await - run in background
+          syncNotifications().catch(console.error);
+        }
+
         // Show success message
+        const successMessage = createdTask.priority === 'VERY_IMPORTANT'
+          ? `"${createdTask.title}" has been created with ${createdTask.priority} priority. You'll be notified when it's due!`
+          : `"${createdTask.title}" has been created with ${createdTask.priority} priority.`;
+
         Swal.fire({
           icon: 'success',
           title: 'Task Created!',
-          text: `"${createdTask.title}" has been created with ${createdTask.priority} priority.`,
-          timer: 2000,
+          text: successMessage,
+          timer: 3000,
           showConfirmButton: false,
           toast: true,
           position: 'top-end',
@@ -222,6 +233,13 @@ export function useTasks(): UseTasksReturn {
 
         // Update tasks list
         setTasks((prev) => prev.map((task) => (task.id === id ? convertedTask : task)));
+
+        // Sync notifications if task now qualifies (priority or due_date changed)
+        if (updates.due_date !== undefined || updates.title !== undefined) {
+          if (shouldNotifyForTask(updatedTask.priority, updatedTask.due_date || undefined)) {
+            syncNotifications().catch(console.error);
+          }
+        }
 
         // Show success message
         Swal.fire({

@@ -1,0 +1,310 @@
+openapi: 3.0.3
+info:
+  title: TodoApp Authentication API
+  description: Authentication endpoints for user registration, login, and logout using BetterAuth
+  version: 1.0.0
+  contact:
+    name: TodoApp Development Team
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development server
+  - url: https://api.todoapp.com/api/v1
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication operations (signup, login, logout)
+
+paths:
+  /auth/signup:
+    post:
+      tags:
+        - Authentication
+      summary: Create new user account
+      description: |
+        Register a new user with email and password. Returns JWT token in httpOnly cookie
+        and user information. Automatically logs in the user after successful signup.
+      operationId: signup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+            examples:
+              valid:
+                summary: Valid signup request
+                value:
+                  email: user@example.com
+                  password: securePassword123
+      responses:
+        '201':
+          description: User created successfully
+          headers:
+            Set-Cookie:
+              description: httpOnly cookie containing JWT token
+              schema:
+                type: string
+                example: auth_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000; Path=/
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              examples:
+                success:
+                  summary: Successful signup
+                  value:
+                    user:
+                      id: 550e8400-e29b-41d4-a716-446655440000
+                      email: user@example.com
+                      created_at: '2025-12-15T12:00:00Z'
+                    message: Account created successfully
+        '400':
+          description: Invalid request (email format, password too short)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_email:
+                  summary: Invalid email format
+                  value:
+                    detail: Invalid email format
+                short_password:
+                  summary: Password too short
+                  value:
+                    detail: Password must be at least 8 characters
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                duplicate_email:
+                  summary: Email already exists
+                  value:
+                    detail: Email already registered. Please login instead.
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Authenticate user
+      description: |
+        Login with email and password. Returns JWT token in httpOnly cookie and user information.
+        Session persists for 30 days unless explicitly logged out.
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              valid:
+                summary: Valid login request
+                value:
+                  email: user@example.com
+                  password: securePassword123
+      responses:
+        '200':
+          description: Login successful
+          headers:
+            Set-Cookie:
+              description: httpOnly cookie containing JWT token
+              schema:
+                type: string
+                example: auth_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000; Path=/
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              examples:
+                success:
+                  summary: Successful login
+                  value:
+                    user:
+                      id: 550e8400-e29b-41d4-a716-446655440000
+                      email: user@example.com
+                      created_at: '2025-12-15T12:00:00Z'
+                    message: Welcome back!
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_credentials:
+                  summary: Wrong email or password
+                  value:
+                    detail: Invalid email or password
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: End user session
+      description: |
+        Logout current user by destroying session and clearing auth cookie.
+        Requires valid authentication token.
+      operationId: logout
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          headers:
+            Set-Cookie:
+              description: Expired auth cookie to clear client-side token
+              schema:
+                type: string
+                example: auth_token=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutResponse'
+              examples:
+                success:
+                  summary: Successful logout
+                  value:
+                    message: You have been logged out successfully
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                not_authenticated:
+                  summary: No valid token
+                  value:
+                    detail: Not authenticated
+
+  /auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current authenticated user
+      description: |
+        Returns information about the currently authenticated user.
+        Used for session verification and user profile display.
+      operationId: getCurrentUser
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Current user information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+              examples:
+                success:
+                  summary: Current user
+                  value:
+                    id: 550e8400-e29b-41d4-a716-446655440000
+                    email: user@example.com
+                    created_at: '2025-12-15T12:00:00Z'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                not_authenticated:
+                  summary: No valid token
+                  value:
+                    detail: Not authenticated
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: auth_token
+      description: JWT token stored in httpOnly cookie
+
+  schemas:
+    SignupRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: User email address (case-insensitive, stored lowercase)
+          example: user@example.com
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+          description: User password (minimum 8 characters, will be hashed)
+          example: securePassword123
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: Registered email address
+          example: user@example.com
+        password:
+          type: string
+          description: User password
+          example: securePassword123
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique user identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: user@example.com
+        created_at:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+          example: '2025-12-15T12:00:00Z'
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        message:
+          type: string
+          description: Success message for user feedback
+          example: Welcome back!
+
+    LogoutResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Logout confirmation message
+          example: You have been logged out successfully
+
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message describing what went wrong
+          example: Invalid email or password

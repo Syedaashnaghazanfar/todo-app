@@ -1,5 +1,6 @@
 # Core dependencies (from pyproject.toml)
 alembic>=1.17.2
+apscheduler==3.10.4
 asyncpg>=0.31.0
 better-auth>=0.0.1b11
 openai-chatkit>=0.1.0

@@ -19,3 +19,6 @@ export {
   useIsDesktop,
   useOrientation,
 } from "./useResponsive";
+
+// Notification hooks
+export { useNotificationPolling } from "./useNotificationPolling";

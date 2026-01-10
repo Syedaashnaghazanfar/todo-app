@@ -1,7 +1,7 @@
 /**
  * TopBar Component
  *
- * Page header with title, user menu, and theme toggle.
+ * Page header with title, user menu, theme toggle, and notification bell.
  * Adapts to mobile viewports.
  */
 
@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { cn } from '@/lib/utils';
+import { useUnreadCount } from '@/stores/notificationStore';
+import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 
 interface TopBarProps {
   title?: string;
@@ -31,6 +33,8 @@ export function TopBar({ title, className }: TopBarProps) {
   const { mode, toggleDarkMode } = useTheme();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const unreadCount = useUnreadCount();
 
   return (
     <header
@@ -100,13 +104,35 @@ export function TopBar({ title, className }: TopBarProps) {
       {/* Right Section */}
       <div className="flex items-center gap-2">
         {/* Notifications */}
-        <button
-          className="relative p-2 rounded-lg hover:bg-[var(--bg-elevated)] transition-colors"
-          aria-label="Notifications"
-        >
-          <Bell className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
-          <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[var(--accent-notifications)]" />
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+            className="relative p-2 rounded-lg hover:bg-[var(--bg-elevated)] transition-colors"
+            aria-label="Notifications"
+            aria-expanded={isNotificationOpen}
+          >
+            <motion.div
+              animate={unreadCount > 0 ? { scale: [1, 1.1, 1] } : {}}
+              transition={{ duration: 0.3, repeat: unreadCount > 0 ? Infinity : 0, repeatDelay: 3 }}
+            >
+              <Bell className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
+            </motion.div>
+            {unreadCount > 0 && (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center text-xs font-bold rounded-full bg-gradient-to-br from-purple-600 to-pink-600 text-white shadow-lg"
+              >
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </motion.span>
+            )}
+          </button>
+
+          <NotificationDropdown
+            isOpen={isNotificationOpen}
+            onClose={() => setIsNotificationOpen(false)}
+          />
+        </div>
 
         {/* Theme Toggle */}
         <button

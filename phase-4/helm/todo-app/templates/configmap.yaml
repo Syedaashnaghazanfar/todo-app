@@ -37,8 +37,8 @@ data:
 
   # Next.js Public
   NEXT_PUBLIC_APP_URL: "http://localhost:3000"
-  NEXT_PUBLIC_API_URL: "http://localhost:8000"
-  NEXT_PUBLIC_CHATKIT_URL: "http://localhost:8000/api/chatkit"
+  NEXT_PUBLIC_API_URL: "http://todo-backend:8000"
+  NEXT_PUBLIC_CHATKIT_URL: "http://todo-backend:8000/api/chatkit"
 
   # Environment
   ENVIRONMENT: "development"

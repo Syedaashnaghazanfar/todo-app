@@ -1,0 +1,319 @@
+openapi: 3.0.3
+info:
+  title: Phase 2 Homepage UI API
+  description: MCP server endpoints used by the Phase 2 Homepage UI
+  version: 1.0.0
+  contact:
+    name: Phase 2 Team
+  license:
+    name: MIT
+
+servers:
+  - url: /api
+    description: API base endpoint
+
+paths:
+  /mcp/status:
+    get:
+      summary: Get system status of all MCP servers
+      description: |
+        Returns the current health status of all MCP servers and backend services.
+        Used by SystemStatusWidget component to display real-time health indicators.
+      operationId: getMCPStatus
+      tags:
+        - System Status
+      parameters:
+        - name: includeMetrics
+          in: query
+          description: Include detailed metrics (optional)
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: System status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemStatus'
+              examples:
+                healthy:
+                  summary: All servers healthy
+                  value:
+                    servers:
+                      - name: Analytics MCP
+                        status: healthy
+                        lastChecked: '2025-12-10T14:30:00Z'
+                        uptime: 99.95
+                        latency: 45
+                      - name: Auth MCP
+                        status: healthy
+                        lastChecked: '2025-12-10T14:30:00Z'
+                        uptime: 100
+                        latency: 12
+                    overallStatus: healthy
+                    lastUpdated: '2025-12-10T14:30:00Z'
+                degraded:
+                  summary: One server degraded
+                  value:
+                    servers:
+                      - name: Analytics MCP
+                        status: degraded
+                        lastChecked: '2025-12-10T14:30:00Z'
+                        uptime: 85.5
+                        latency: 2000
+                        message: High latency detected
+                    overallStatus: degraded
+                    lastUpdated: '2025-12-10T14:30:00Z'
+        '503':
+          description: Service unavailable - all servers offline
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      x-rate-limit: '100/10s'
+      x-cache: '10s'
+
+  /mcp/metrics:
+    get:
+      summary: Get application metrics and statistics
+      description: |
+        Returns key performance metrics and statistics for the stats preview area.
+        Data prepared for Chart Visualizer Sub-Agent integration.
+      operationId: getMCPMetrics
+      tags:
+        - Metrics
+      parameters:
+        - name: period
+          in: query
+          description: Time period for metrics
+          required: false
+          schema:
+            type: string
+            enum: [day, week, month]
+            default: day
+        - name: limit
+          in: query
+          description: Maximum number of metrics to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+      responses:
+        '200':
+          description: Metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsResponse'
+              examples:
+                example:
+                  value:
+                    metrics:
+                      - id: active_users
+                        label: Active Users
+                        value: 1234
+                        unit: users
+                        trend: '+12%'
+                        chartType: line
+                      - id: api_calls
+                        label: API Calls (24h)
+                        value: 50000
+                        unit: calls
+                        trend: '+8%'
+                        chartType: bar
+                      - id: uptime
+                        label: System Uptime
+                        value: 99.95
+                        unit: '%'
+                        trend: '+0.05%'
+                        chartType: area
+                    timestamp: '2025-12-10T14:30:00Z'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Metrics service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      x-rate-limit: '100/10s'
+      x-cache: '30s'
+
+components:
+  schemas:
+    SystemStatus:
+      type: object
+      description: System health status across all MCP servers
+      required:
+        - servers
+        - overallStatus
+        - lastUpdated
+      properties:
+        servers:
+          type: array
+          description: Status of individual MCP servers
+          items:
+            $ref: '#/components/schemas/ServerStatus'
+        overallStatus:
+          type: string
+          enum: [healthy, degraded, offline]
+          description: Overall system health
+        lastUpdated:
+          type: string
+          format: date-time
+          description: Timestamp of last status check (ISO 8601)
+
+    ServerStatus:
+      type: object
+      description: Individual MCP server status
+      required:
+        - name
+        - status
+        - lastChecked
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: MCP server name (e.g., "Analytics MCP", "Auth MCP")
+        status:
+          type: string
+          enum: [healthy, degraded, offline]
+          description: Server health status
+        lastChecked:
+          type: string
+          format: date-time
+          description: Timestamp of last health check (ISO 8601)
+        uptime:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Server uptime percentage (0-100)
+        latency:
+          type: number
+          minimum: 0
+          description: Average response latency in milliseconds
+        message:
+          type: string
+          maxLength: 200
+          description: Optional status message or error details
+
+    MetricsResponse:
+      type: object
+      description: Application metrics for stats preview area
+      required:
+        - metrics
+        - timestamp
+      properties:
+        metrics:
+          type: array
+          description: Array of metrics
+          items:
+            $ref: '#/components/schemas/Metric'
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when metrics were collected (ISO 8601)
+
+    Metric:
+      type: object
+      description: Individual metric data point
+      required:
+        - id
+        - label
+        - value
+        - unit
+      properties:
+        id:
+          type: string
+          pattern: '^[a-z_]+$'
+          description: Unique metric identifier
+        label:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: Display label for metric
+        value:
+          type: number
+          description: Metric value
+        unit:
+          type: string
+          minLength: 1
+          maxLength: 20
+          description: Unit of measurement (e.g., "users", "calls", "%")
+        subtitle:
+          type: string
+          maxLength: 50
+          description: Optional subtitle or description
+        trend:
+          type: string
+          maxLength: 10
+          description: Optional trend indicator (e.g., "+12%", "-5%")
+        chartType:
+          type: string
+          enum: [line, bar, pie, area]
+          description: Suggested chart type for visualization
+
+    ErrorResponse:
+      type: object
+      description: Standard error response
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code (e.g., "SERVICE_UNAVAILABLE")
+        message:
+          type: string
+          description: Human-readable error message
+        statusCode:
+          type: integer
+          description: HTTP status code
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp (ISO 8601)
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ServiceUnavailable:
+      description: Service temporarily unavailable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+tags:
+  - name: System Status
+    description: Endpoints for MCP server health and status
+  - name: Metrics
+    description: Endpoints for application metrics and statistics
+
+x-info:
+  documentation: /docs
+  contact-email: team@phase2.local
+  api-version: 1.0.0
+  cache-strategy: Aggressive caching on status and metrics endpoints
+  rate-limit-strategy: 100 requests per 10 seconds per IP
