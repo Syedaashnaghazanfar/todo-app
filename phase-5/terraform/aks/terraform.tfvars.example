@@ -1,0 +1,67 @@
+# Example Terraform variables file
+# Copy this file to terraform.tfvars and customize for your environment
+# DO NOT commit terraform.tfvars to version control (contains sensitive values)
+
+# ==================== General Configuration ====================
+environment         = "production"
+location            = "eastus"
+resource_group_name = "todo-app-phase5-prod-rg"
+cluster_name        = "todoapp-phase5-prod"
+
+# ==================== AKS Cluster Configuration ====================
+kubernetes_version  = "1.29.0"
+availability_zones  = ["1", "2", "3"]
+
+# ==================== Node Pool Configuration ====================
+# System node pool (Kubernetes system components)
+system_node_count     = 3
+system_node_min_count = 3
+system_node_max_count = 6
+system_node_vm_size   = "Standard_DS2_v2"  # 2 vCPU, 7GB RAM - $96/month per node
+
+# Application node pool (backend, frontend, services)
+app_node_count     = 3
+app_node_min_count = 3
+app_node_max_count = 12
+app_node_vm_size   = "Standard_DS3_v2"  # 4 vCPU, 14GB RAM - $193/month per node
+
+# Monitoring node pool (Prometheus, Grafana, Zipkin)
+monitoring_node_count     = 2
+monitoring_node_min_count = 2
+monitoring_node_max_count = 4
+monitoring_node_vm_size   = "Standard_DS2_v2"  # 2 vCPU, 7GB RAM - $96/month per node
+
+# ==================== Azure Container Registry ====================
+acr_sku              = "Standard"  # Basic: $5/month, Standard: $20/month, Premium: $500/month
+acr_geo_replications = []          # e.g., ["westeurope", "westus2"] for Premium SKU only
+
+# ==================== Monitoring & Logging ====================
+log_retention_days = 30  # Log Analytics retention (30 days = ~$2.30/GB/month)
+
+# ==================== Security ====================
+# IP ranges allowed to access Key Vault (CIDR notation)
+# Example: ["203.0.113.0/24", "198.51.100.42/32"]
+allowed_ip_ranges = []
+
+# ==================== Common Tags ====================
+common_tags = {
+  Project     = "TodoApp-Phase5"
+  ManagedBy   = "Terraform"
+  Environment = "production"
+  Owner       = "DevOps Team"
+  CostCenter  = "Engineering"
+  Compliance  = "GDPR"
+}
+
+# ==================== Estimated Monthly Cost ====================
+# System node pool: 3 nodes × $96 = $288/month
+# App node pool:    3 nodes × $193 = $579/month
+# Monitoring pool:  2 nodes × $96 = $192/month
+# ACR Standard:     $20/month
+# Log Analytics:    ~$50/month (estimated for 1M events/day)
+# Key Vault:        ~$0.03/10k operations
+# Public IP:        ~$3.60/month
+# TOTAL:            ~$1,132/month (baseline with 8 nodes)
+#
+# With autoscaling to max (22 nodes): ~$2,500/month
+# Target cost: <$500/month requires optimization (smaller VM sizes, fewer nodes)

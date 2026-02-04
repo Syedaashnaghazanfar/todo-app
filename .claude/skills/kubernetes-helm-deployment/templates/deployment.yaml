@@ -1,0 +1,65 @@
+# Kubernetes Deployment Template with Dapr Sidecar
+# Copy this template to helm/todo-app/templates/backend-deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.backend.name }}
+  labels:
+    app: {{ .Values.backend.name }}
+spec:
+  replicas: {{ .Values.backend.replicas | default 2 }}
+  selector:
+    matchLabels:
+      app: {{ .Values.backend.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.backend.name }}
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "{{ .Values.backend.name }}"
+        dapr.io/app-port: "{{ .Values.backend.port }}"
+        dapr.io/config: "dapr-config"
+        dapr.io/log-level: "info"
+    spec:
+      containers:
+        - name: {{ .Values.backend.name }}
+          image: {{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}
+          ports:
+            - containerPort: {{ .Values.backend.port }}
+              name: http
+          env:
+            - name: DAPR_HTTP_PORT
+              value: "3500"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: database-secrets
+                  key: url
+            - name: KAFKA_BROKERS
+              value: "{{ .Values.kafka.brokers }}"
+          resources:
+            requests:
+              cpu: {{ .Values.backend.resources.requests.cpu | default "100m" }}
+              memory: {{ .Values.backend.resources.requests.memory | default "256Mi" }}
+            limits:
+              cpu: {{ .Values.backend.resources.limits.cpu | default "500m" }}
+              memory: {{ .Values.backend.resources.limits.memory | default "512Mi" }}
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: {{ .Values.backend.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: {{ .Values.backend.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+

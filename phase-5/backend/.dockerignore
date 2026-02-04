@@ -1,0 +1,86 @@
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+.hypothesis/
+
+# Environment files (will be set in Hugging Face Spaces)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+backend.log
+backend_test.log
+server.log
+server_new.log
+
+# Database files (use remote database)
+*.db
+*.sqlite
+*.sqlite3
+
+# Build and distribution
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Alembic (migrations should be pre-run or run during startup)
+# alembic/versions/*.py  # Uncomment if you don't want to include migration files
+
+# Testing files
+tests/
+test_*.py
+*_test.py
+
+# Documentation
+docs/
+*.md
+README.md
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Lock files (use requirements.txt)
+uv.lock
+poetry.lock
+Pipfile.lock
+pyproject.toml
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Other
+.editorconfig
+.pre-commit-config.yaml
+Makefile

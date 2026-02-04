@@ -1,0 +1,79 @@
+# Dapr State Store - PostgreSQL
+# Used ONLY for chatbot conversation history (NOT for task data)
+# Task data remains in primary PostgreSQL database via SQLAlchemy
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: statestore-postgresql
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: state.postgresql
+  version: v1
+  metadata:
+  # Database Connection String
+  # Retrieved from secret store (not hardcoded)
+  - name: connectionString
+    secretKeyRef:
+      name: {{ .Values.secrets.database.name | default "todo-secrets" }}
+      key: {{ .Values.secrets.database.connectionStringKey | default "dapr-state-db-url" }}
+
+  # Table name for state storage
+  # Dapr creates this table automatically if it doesn't exist
+  - name: tableName
+    value: {{ .Values.dapr.stateStore.tableName | default "dapr_state" | quote }}
+
+  # Metadata table for versioning and ETags
+  - name: metadataTableName
+    value: {{ .Values.dapr.stateStore.metadataTableName | default "dapr_state_metadata" | quote }}
+
+  # Timeout for database operations
+  - name: timeout
+    value: {{ .Values.dapr.stateStore.timeout | default "30s" | quote }}
+
+  # Clean up expired state entries (TTL support)
+  - name: cleanupInterval
+    value: {{ .Values.dapr.stateStore.cleanupInterval | default "1h" | quote }}
+
+  {{- if eq .Values.environment "production" }}
+  # Production: Enable connection pooling
+  - name: maxIdleConnections
+    value: {{ .Values.dapr.stateStore.maxIdleConnections | default "5" | quote }}
+
+  - name: maxOpenConnections
+    value: {{ .Values.dapr.stateStore.maxOpenConnections | default "20" | quote }}
+
+  - name: connectionMaxIdleTime
+    value: {{ .Values.dapr.stateStore.connectionMaxIdleTime | default "5m" | quote }}
+  {{- end }}
+---
+# State Store Usage Notes
+#
+# IMPORTANT: This state store is ONLY for chatbot conversation history
+# - Conversation messages (user + assistant turns)
+# - Session context for ChatKit
+# - Temporary agent state
+#
+# Task data (tasks, users, task_history) remains in the primary PostgreSQL
+# database accessed via SQLAlchemy, NOT through Dapr State Store.
+#
+# Dapr State API Examples:
+#   POST /v1.0/state/statestore-postgresql
+#   GET /v1.0/state/statestore-postgresql/{key}
+#   DELETE /v1.0/state/statestore-postgresql/{key}
+#
+# State Key Naming Convention:
+#   - conversation:{user_id}:{conversation_id}
+#   - session:{session_id}
+#
+# Database Connection String Format:
+#   postgresql://username:password@host:port/database?sslmode=require
+#
+# Separate database connection for state store:
+# - Primary DB: Task operations (via SQLAlchemy in backend)
+# - State Store DB: Conversation history (via Dapr State API)
+# - Can be same PostgreSQL instance, different schema/table prefix

@@ -1,0 +1,168 @@
+# Helm Values for Minikube Local Development
+# Override production defaults with local-specific configuration
+
+global:
+  environment: local
+  namespace: default
+
+# Kafka Configuration (Self-hosted via Bitnami Helm chart)
+kafka:
+  enabled: true
+  brokers: "kafka:9092"
+  sasl:
+    enabled: false
+  tls:
+    enabled: false
+  topics:
+    taskOperations: "task-operations"
+    alerts: "alerts"
+    taskModifications: "task-modifications"
+  retention:
+    ms: 604800000  # 7 days
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: standard  # Minikube default
+  logRetentionHours: 168  # 7 days
+
+# Dapr Configuration
+dapr:
+  enabled: true
+  mtls:
+    enabled: false  # Disable mTLS for local development
+  logLevel: "debug"
+  components:
+    pubsub:
+      name: "pubsub-kafka"
+      type: "pubsub.kafka"
+      brokers: "kafka:9092"
+      consumerGroup: "todo-app-group"
+    secretstore:
+      name: "secretstore"
+      type: "secretstores.kubernetes"  # Use K8s Secrets locally
+    statestore:
+      name: "statestore-postgres"
+      type: "state.postgresql"
+      connectionString: ""  # Set via K8s Secret
+    jobs:
+      name: "jobs-api"
+      schedulerHostAddress: "dapr-scheduler:50006"
+
+# Backend API Service
+backend:
+  enabled: true
+  image:
+    repository: todo-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicas: 1
+  port: 8000
+  env:
+    SERVICE_NAME: "backend-api"
+    LOG_LEVEL: "DEBUG"
+    DAPR_HTTP_PORT: "3500"
+    KAFKA_BROKERS: "kafka:9092"
+    ENV: "development"  # Enable hot-reload with uvicorn --reload
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  service:
+    type: NodePort
+    port: 8000
+    nodePort: 30800
+
+# Recurring Task Service
+recurringService:
+  enabled: true
+  image:
+    repository: recurring-task-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicas: 1
+  port: 8001
+  env:
+    SERVICE_NAME: "recurring-task-service"
+    LOG_LEVEL: "DEBUG"
+    DAPR_HTTP_PORT: "3500"
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+  service:
+    type: ClusterIP
+    port: 8001
+
+# Notification Service
+notificationService:
+  enabled: true
+  image:
+    repository: notification-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicas: 1
+  port: 8002
+  env:
+    SERVICE_NAME: "notification-service"
+    LOG_LEVEL: "DEBUG"
+    DAPR_HTTP_PORT: "3500"
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+  service:
+    type: ClusterIP
+    port: 8002
+
+# Frontend Service
+frontend:
+  enabled: true
+  image:
+    repository: todo-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicas: 1
+  port: 3000
+  env:
+    NEXT_PUBLIC_API_URL: "http://localhost:30800"
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  service:
+    type: NodePort
+    port: 3000
+    nodePort: 30300
+
+# PostgreSQL (Neon connection - no local PostgreSQL deployment)
+postgresql:
+  enabled: false
+  connectionString: ""  # Set via K8s Secret
+
+# Horizontal Pod Autoscaler
+hpa:
+  enabled: false  # Disable HPA for local development
+
+# Ingress
+ingress:
+  enabled: false  # Use NodePort for local access
+
+# Monitoring
+monitoring:
+  enabled: false  # Disable Prometheus/Grafana for local
+
+# Network Policies
+networkPolicies:
+  enabled: false  # Disable for local development

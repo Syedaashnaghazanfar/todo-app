@@ -1,0 +1,74 @@
+# Dapr Pub/Sub Component - Apache Kafka
+# Used for event-driven task operations, alerts, and modifications
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: pubsub-kafka
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: pubsub.kafka
+  version: v1
+  metadata:
+  # Kafka Broker Configuration
+  - name: brokers
+    value: {{ .Values.kafka.brokers | quote }}
+
+  # Consumer Group Configuration
+  - name: consumerGroup
+    value: {{ .Values.kafka.consumerGroup | default "todo-app-consumers" | quote }}
+
+  # Client ID for identifying this application
+  - name: clientID
+    value: {{ .Values.app.name | default "todo-app" | quote }}
+
+  {{- if eq .Values.environment "production" }}
+  # Production: SASL authentication for Azure Event Hubs (Kafka-compatible)
+  # Task: T046 - Azure Event Hubs replaces Redpanda Cloud for Azure-native architecture
+  # Credentials retrieved from Azure Key Vault via Dapr Secret Store
+  - name: authType
+    value: "password"  # Azure Event Hubs uses SASL/PLAIN authentication
+
+  - name: saslUsername
+    {{- if .Values.kafka.useEventHubs }}
+    # Azure Event Hubs: Username is always "$ConnectionString"
+    value: "$ConnectionString"
+    {{- else }}
+    # Other Kafka providers (Redpanda, Confluent, etc.)
+    secretKeyRef:
+      name: secretstore
+      key: {{ .Values.dapr.pubsub.saslUsernameSecretRef | default "kafka-sasl-username" }}
+    {{- end }}
+
+  - name: saslPassword
+    secretKeyRef:
+      name: secretstore
+      {{- if .Values.kafka.useEventHubs }}
+      # Azure Event Hubs: Password is the full connection string
+      key: {{ .Values.dapr.pubsub.saslPasswordSecretRef | default "eventhubs-connection-string" }}
+      {{- else }}
+      # Other Kafka providers
+      key: {{ .Values.dapr.pubsub.saslPasswordSecretRef | default "kafka-sasl-password" }}
+      {{- end }}
+
+  {{- else }}
+  # Local/Staging: No authentication for Bitnami Kafka
+  - name: authType
+    value: "none"
+  {{- end }}
+
+  # Performance Tuning
+  - name: maxMessageBytes
+    value: "1048576"  # 1MB max message size
+
+  - name: consumeRetryInterval
+    value: "5s"
+
+  # Topic Configuration (topics created by Kafka, not here)
+  # Topics: task-operations, alerts, task-modifications
+  # Partitions: 12 per topic (configured in Kafka, not Dapr)
+  # Retention: 7 days local, 30 days production (configured in Kafka)

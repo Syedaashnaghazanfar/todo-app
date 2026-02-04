@@ -1,0 +1,51 @@
+# Kubernetes Ingress for Todo App
+# API Version: networking.k8s.io/v1 (stable)
+# Path-based routing:
+#   /api/* → backend service (port 8000)
+#   /*     → frontend service (port 3000)
+# TLS: Configured for production (cert-manager integration)
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: todo-ingress
+  labels:
+    app: todo-app
+  annotations:
+    # Nginx-specific annotations (adjust for other ingress controllers)
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    # For production with cert-manager:
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+
+  # TLS configuration (production only)
+  # Uncomment for production deployment with valid domain
+  # tls:
+  # - hosts:
+  #   - todo-app.example.com
+  #   secretName: todo-tls-cert
+
+  rules:
+  # Development: Use minikube IP or localhost
+  # Production: Replace with actual domain
+  - host: todo-app.local
+    http:
+      paths:
+      # Backend API routes
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: todo-backend
+            port:
+              number: 8000
+
+      # Frontend routes (catch-all)
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: todo-frontend
+            port:
+              number: 3000

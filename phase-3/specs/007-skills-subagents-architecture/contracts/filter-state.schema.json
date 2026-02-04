@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://todo-app.com/schemas/filter-state.json",
+  "title": "FilterState",
+  "description": "Active filter selections with cumulative AND logic",
+  "type": "object",
+  "required": ["status", "priority", "dueDate"],
+  "properties": {
+    "status": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["NOT_STARTED", "IN_PROGRESS", "COMPLETED"]
+      },
+      "maxItems": 3,
+      "uniqueItems": true,
+      "default": [],
+      "description": "Selected status filters (OR within category, AND across categories)"
+    },
+    "priority": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["VERY_IMPORTANT", "HIGH", "MEDIUM", "LOW"]
+      },
+      "maxItems": 4,
+      "uniqueItems": true,
+      "default": [],
+      "description": "Selected priority filters (OR within category, AND across categories)"
+    },
+    "dueDate": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["overdue", "today", "this_week", "this_month", "no_due_date"]
+      },
+      "maxItems": 5,
+      "uniqueItems": true,
+      "default": [],
+      "description": "Selected due date filters (OR within category, AND across categories)"
+    }
+  },
+  "examples": [
+    {
+      "status": [],
+      "priority": [],
+      "dueDate": []
+    },
+    {
+      "status": ["IN_PROGRESS"],
+      "priority": ["VERY_IMPORTANT", "HIGH"],
+      "dueDate": ["today", "overdue"]
+    }
+  ]
+}

@@ -1,0 +1,304 @@
+# Default values for todo-app (Development environment)
+# This is a YAML-formatted file.
+
+# Global settings
+global:
+  environment: development
+
+# Application configuration
+app:
+  name: todo-app
+  version: "1.0.0"
+
+# Kubernetes namespace
+namespace: default
+
+# Environment identifier for Dapr components
+environment: development
+env: development
+
+# Kafka Configuration (Phase V)
+kafka:
+  # Kafka brokers (comma-separated)
+  # Local: kafka:9092 (Bitnami Helm chart)
+  # Production: Redpanda Cloud broker URLs
+  brokers: "kafka:9092"
+
+  # Consumer group for Dapr Pub/Sub
+  consumerGroup: "todo-app-consumers"
+
+  # Topics (created by Kafka, not Dapr)
+  topics:
+    taskOperations: "task-operations"
+    alerts: "alerts"
+    taskModifications: "task-modifications"
+    taskOperationsDlq: "task-operations-dlq"
+    alertsDlq: "alerts-dlq"
+    taskModificationsDlq: "task-modifications-dlq"
+
+  # Topic configuration (applied during Kafka setup)
+  topicConfig:
+    partitions: 12
+    replicationFactor: 1  # 1 for local, 3 for production
+    retentionMs: 604800000  # 7 days in milliseconds
+
+# Dapr Configuration (Phase V)
+dapr:
+  enabled: true
+
+  # Dapr Scheduler for Jobs API
+  scheduler:
+    address: "dapr-scheduler.dapr-system.svc.cluster.local:50006"
+
+  # Jobs API Configuration
+  jobs:
+    # Retry policy: exponential | constant | linear
+    failurePolicy: "exponential"
+    # Maximum number of retry attempts before moving to DLQ
+    maxRetries: 3
+    # Initial interval for exponential backoff (5s → 10s → 20s with multiplier=2)
+    initialInterval: "5s"
+    # Backoff multiplier (each retry multiplies the interval)
+    multiplier: 2
+    # Maximum interval cap for exponential backoff
+    maxInterval: "60s"
+    # TTL for completed jobs (cleanup)
+    ttl: "24h"
+
+  # State Store Configuration (PostgreSQL)
+  stateStore:
+    tableName: "dapr_state"
+    metadataTableName: "dapr_state_metadata"
+    timeout: "30s"
+    cleanupInterval: "1h"
+    # Connection pooling (production)
+    maxIdleConnections: 5
+    maxOpenConnections: 20
+    connectionMaxIdleTime: "5m"
+
+  # mTLS Configuration
+  mtls:
+    enabled: false  # Disabled for local development
+    allowedClockSkew: "15m"
+    workloadCertTTL: "24h"
+
+  # Logging
+  logLevel: "info"  # debug, info, warn, error
+
+# Backend configuration
+backend:
+  name: todo-backend
+  replicaCount: 2
+
+  image:
+    repository: todo-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8000
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+  # Health probes
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  # Environment variables from ConfigMap
+  env:
+    LLM_PROVIDER: openai
+    CORS_ORIGINS: "http://localhost:3000,http://todo-app.local"
+    ENVIRONMENT: development
+
+  # Autoscaling (disabled by default for dev)
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+# Recurring Task Service configuration (Phase 5)
+recurringService:
+  name: recurring-task-service
+  replicas: 2
+  version: "1.0.0"
+
+  image:
+    repository: recurring-task-service
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8001
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi
+
+  # Horizontal Pod Autoscaler (matches Kafka partition count)
+  hpa:
+    minReplicas: 2
+    maxReplicas: 12
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+# Frontend configuration
+frontend:
+  replicaCount: 2
+
+  image:
+    repository: todo-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 3000
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi
+
+  # Health probes
+  livenessProbe:
+    httpGet:
+      path: /api/health
+      port: 3000
+    initialDelaySeconds: 45
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /api/health
+      port: 3000
+    initialDelaySeconds: 15
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  # Environment variables from ConfigMap
+  env:
+    NEXT_PUBLIC_API_URL: "http://todo-backend:8000"
+    NEXT_PUBLIC_CHATKIT_URL: "http://todo-backend:8000/api/chatkit"
+    ENVIRONMENT: development
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  hosts:
+    - host: todo-app.local
+      paths:
+        - path: /api
+          pathType: Prefix
+          backend:
+            service: backend
+        - path: /
+          pathType: Prefix
+          backend:
+            service: frontend
+  tls: []
+  # Uncomment for production with TLS
+  # tls:
+  #   - secretName: todo-tls-cert
+  #     hosts:
+  #       - todo-app.local
+
+# Secrets (must be created separately)
+secrets:
+  # Reference to existing secret
+  name: todo-secrets
+  # Keys expected in secret:
+  # - database-url
+  # - openai-api-key
+  # - better-auth-secret
+  # - groq-api-key
+  # - dapr-state-db-url (for state store)
+
+  # Kafka credentials (production only)
+  kafka:
+    name: kafka-credentials
+    usernameKey: username
+    passwordKey: password
+
+  # Database connection for Dapr state store
+  database:
+    name: todo-secrets
+    connectionStringKey: dapr-state-db-url
+
+  # Azure Key Vault (production only)
+  allowedSecrets:
+    - todo-secrets
+    - kafka-credentials
+
+# ConfigMap
+configMap:
+  name: todo-config
+
+# Security context
+securityContext:
+  backend:
+    runAsNonRoot: true
+    runAsUser: 10001
+    fsGroup: 10001
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+  frontend:
+    runAsNonRoot: true
+    runAsUser: 1001
+    fsGroup: 1001
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+# Pod annotations
+podAnnotations: {}
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}

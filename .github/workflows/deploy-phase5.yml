@@ -1,0 +1,270 @@
+# GitHub Actions Workflow - Deploy Phase 5 to Azure AKS
+# Phase V: Enterprise-Grade Cloud Infrastructure
+# Task: T051 - Create GitHub Actions workflow for CI/CD deployment
+
+name: Deploy Phase 5 to AKS
+
+on:
+  push:
+    branches:
+      - main
+      - 013-enterprise-cloud-infra
+    paths:
+      - 'phase-5/**'
+      - '.github/workflows/deploy-phase5.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'phase-5/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  AZURE_RESOURCE_GROUP: todo-app-phase5-${{ github.event.inputs.environment || 'staging' }}-rg
+  AKS_CLUSTER_NAME: todoapp-phase5-${{ github.event.inputs.environment || 'staging' }}
+  ACR_NAME: todoappacrphase5${{ github.event.inputs.environment || 'staging' }}
+  HELM_CHART_PATH: ./phase-5/helm/todo-app
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  # ==================== Build and Push Docker Images ====================
+  build:
+    name: Build and Push Images
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+
+    strategy:
+      matrix:
+        service:
+          - name: backend
+            context: ./phase-5/backend
+            dockerfile: ./phase-5/backend/Dockerfile
+          - name: frontend
+            context: ./phase-5/frontend/todo-app
+            dockerfile: ./phase-5/frontend/todo-app/Dockerfile
+          - name: recurring-task-service
+            context: ./phase-5/services/recurring-task-service
+            dockerfile: ./phase-5/services/recurring-task-service/Dockerfile
+          - name: notification-service
+            context: ./phase-5/services/notification-service
+            dockerfile: ./phase-5/services/notification-service/Dockerfile
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to Azure Container Registry
+        run: |
+          az acr login --name ${{ env.ACR_NAME }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push ${{ matrix.service.name }} image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.service.context }}
+          file: ${{ matrix.service.dockerfile }}
+          push: true
+          tags: |
+            ${{ env.ACR_NAME }}.azurecr.io/todo-${{ matrix.service.name }}:${{ env.IMAGE_TAG }}
+            ${{ env.ACR_NAME }}.azurecr.io/todo-${{ matrix.service.name }}:latest
+          cache-from: type=registry,ref=${{ env.ACR_NAME }}.azurecr.io/todo-${{ matrix.service.name }}:buildcache
+          cache-to: type=registry,ref=${{ env.ACR_NAME }}.azurecr.io/todo-${{ matrix.service.name }}:buildcache,mode=max
+          platforms: linux/amd64
+
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.ACR_NAME }}.azurecr.io/todo-${{ matrix.service.name }}:${{ env.IMAGE_TAG }}
+          format: 'sarif'
+          output: 'trivy-results-${{ matrix.service.name }}.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results-${{ matrix.service.name }}.sarif'
+          category: 'trivy-${{ matrix.service.name }}'
+
+  # ==================== Deploy to AKS ====================
+  deploy:
+    name: Deploy to AKS
+    needs: build
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set AKS context
+        uses: azure/aks-set-context@v4
+        with:
+          resource-group: ${{ env.AZURE_RESOURCE_GROUP }}
+          cluster-name: ${{ env.AKS_CLUSTER_NAME }}
+
+      - name: Create namespace if not exists
+        run: |
+          kubectl create namespace todo-app-${{ github.event.inputs.environment || 'staging' }} --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Install/Upgrade Dapr
+        run: |
+          # Check if Dapr is installed
+          if ! helm list -n dapr-system | grep -q dapr; then
+            echo "Installing Dapr..."
+            helm repo add dapr https://dapr.github.io/helm-charts/
+            helm repo update
+            helm install dapr dapr/dapr --namespace dapr-system --create-namespace --wait
+          else
+            echo "Dapr already installed"
+          fi
+
+      - name: Create Kafka credentials secret
+        run: |
+          kubectl create secret generic kafka-credentials \
+            --from-literal=username=${{ secrets.KAFKA_USERNAME }} \
+            --from-literal=password=${{ secrets.KAFKA_PASSWORD }} \
+            --namespace=todo-app-${{ github.event.inputs.environment || 'staging' }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Create database secret
+        run: |
+          kubectl create secret generic todo-secrets \
+            --from-literal=dapr-state-db-url=${{ secrets.DATABASE_URL }} \
+            --namespace=todo-app-${{ github.event.inputs.environment || 'staging' }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy Helm chart
+        run: |
+          helm upgrade --install todo-app ${{ env.HELM_CHART_PATH }} \
+            --namespace todo-app-${{ github.event.inputs.environment || 'staging' }} \
+            --values ${{ env.HELM_CHART_PATH }}/values-aks.yaml \
+            --set backend.image.tag=${{ env.IMAGE_TAG }} \
+            --set frontend.image.tag=${{ env.IMAGE_TAG }} \
+            --set recurringService.image.tag=${{ env.IMAGE_TAG }} \
+            --set notificationService.image.tag=${{ env.IMAGE_TAG }} \
+            --set azure.keyVault.name=${{ secrets.AZURE_KEY_VAULT_NAME }} \
+            --set kafka.brokers=${{ secrets.KAFKA_BROKERS }} \
+            --wait \
+            --timeout 10m
+
+      - name: Verify deployment
+        run: |
+          echo "Checking pod status..."
+          kubectl get pods -n todo-app-${{ github.event.inputs.environment || 'staging' }}
+
+          echo "Waiting for all pods to be ready..."
+          kubectl wait --for=condition=ready pod \
+            -l app.kubernetes.io/instance=todo-app \
+            -n todo-app-${{ github.event.inputs.environment || 'staging' }} \
+            --timeout=5m
+
+          echo "Checking service endpoints..."
+          kubectl get svc -n todo-app-${{ github.event.inputs.environment || 'staging' }}
+
+          echo "Checking ingress..."
+          kubectl get ingress -n todo-app-${{ github.event.inputs.environment || 'staging' }}
+
+  # ==================== Integration Tests ====================
+  integration-tests:
+    name: Run Integration Tests
+    needs: deploy
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set AKS context
+        uses: azure/aks-set-context@v4
+        with:
+          resource-group: ${{ env.AZURE_RESOURCE_GROUP }}
+          cluster-name: ${{ env.AKS_CLUSTER_NAME }}
+
+      - name: Port-forward backend service
+        run: |
+          kubectl port-forward svc/todo-app-backend 8000:8000 \
+            -n todo-app-${{ github.event.inputs.environment || 'staging' }} &
+          sleep 10
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install test dependencies
+        run: |
+          pip install pytest requests
+
+      - name: Run health check
+        run: |
+          curl -f http://localhost:8000/health || exit 1
+
+      - name: Run API integration tests
+        run: |
+          cd phase-5/tests/integration
+          pytest test_event_flow.py -v
+
+      - name: Check Dapr components
+        run: |
+          kubectl get components -n todo-app-${{ github.event.inputs.environment || 'staging' }}
+
+      - name: Check Dapr sidecar injection
+        run: |
+          kubectl get pods -n todo-app-${{ github.event.inputs.environment || 'staging' }} \
+            -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[*].name}{"\n"}{end}'
+
+  # ==================== Rollback on Failure ====================
+  rollback:
+    name: Rollback on Failure
+    needs: [deploy, integration-tests]
+    if: failure()
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set AKS context
+        uses: azure/aks-set-context@v4
+        with:
+          resource-group: ${{ env.AZURE_RESOURCE_GROUP }}
+          cluster-name: ${{ env.AKS_CLUSTER_NAME }}
+
+      - name: Rollback Helm release
+        run: |
+          helm rollback todo-app -n todo-app-${{ github.event.inputs.environment || 'staging' }}
+
+      - name: Notify rollback
+        run: |
+          echo "Deployment failed. Rolled back to previous version."
+          kubectl get pods -n todo-app-${{ github.event.inputs.environment || 'staging' }}

@@ -12,14 +12,14 @@ Phase 4 containerizes the Todo App (FastAPI backend + Next.js frontend) and enab
 
 ### 🐳 Docker Infrastructure
 
-**Backend Dockerfile** (`docker/backend/Dockerfile`):
+**Backend Dockerfile** (`phase-4/backend/Dockerfile`):
 - Multi-stage build (deps + runtime)
 - Base: `python:3.12-slim`
 - Non-root user: UID 10001 (appuser)
 - Production command: `fastapi run`
 - Expected size: <200MB
 
-**Frontend Dockerfile** (`docker/frontend/Dockerfile`):
+**Frontend Dockerfile** (`phase-4/frontend/Dockerfile`):
 - Multi-stage build (deps + builder + runtime)
 - Base: `node:20-alpine`
 - Next.js standalone output

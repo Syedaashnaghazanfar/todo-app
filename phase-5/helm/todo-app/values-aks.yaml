@@ -1,0 +1,451 @@
+# Helm Values for Azure Kubernetes Service (AKS) - Production
+# Phase V: Enterprise Cloud Infrastructure
+# Override defaults with Azure-specific production configuration
+
+global:
+  environment: production
+  namespace: todo-app-prod
+
+# Application configuration
+app:
+  name: todo-app
+  version: "1.0.0"
+
+# Environment identifier for Dapr components
+environment: production
+
+# Kafka Configuration (Azure Event Hubs - Kafka-compatible)
+# Task: T046 - Migrated from Redpanda Cloud to Azure Event Hubs for Azure-native architecture
+# Uses Azure $200 free tier credits, then ~$166/month for Standard tier
+kafka:
+  # Azure Event Hubs as Kafka broker (replace with actual namespace name from Terraform)
+  # Format: <namespace-name>.servicebus.windows.net:9093
+  brokers: "todo-app-eventhubs-prod.servicebus.windows.net:9093"
+
+  # Flag to indicate Azure Event Hubs is used (enables proper SASL configuration)
+  useEventHubs: true
+
+  # Consumer group
+  consumerGroup: "todo-app-production-consumers"
+
+  # Topics (Event Hubs - created via Terraform)
+  # Each Event Hub acts as a Kafka topic
+  topics:
+    taskOperations: "task-operations"
+    alerts: "alerts"
+    taskModifications: "task-modifications"
+    taskOperationsDlq: "task-operations-dlq"
+    alertsDlq: "alerts-dlq"
+    taskModificationsDlq: "task-modifications-dlq"
+
+  # Topic configuration (applied during Azure Event Hubs provisioning via Terraform)
+  topicConfig:
+    partitions: 12
+    replicationFactor: 1  # Event Hubs managed internally by Azure
+    retentionMs: 2592000000  # 30 days for production (7 days = 604800000)
+
+# Dapr Configuration (Production with mTLS)
+dapr:
+  enabled: true
+
+  # Dapr Scheduler for Jobs API
+  scheduler:
+    address: "dapr-scheduler.dapr-system.svc.cluster.local:50006"
+
+  # Jobs API Configuration
+  jobs:
+    failurePolicy: "constant"
+    maxRetries: 3
+    retryInterval: "5s"
+    ttl: "24h"
+
+  # Pub/Sub Configuration (Azure Event Hubs - Kafka-compatible)
+  # Task: T046, T049 - Migrated to Azure Event Hubs for Azure-native architecture
+  pubsub:
+    brokers: "todo-app-eventhubs-prod.servicebus.windows.net:9093"
+    # SASL credentials stored in Azure Key Vault (connection string)
+    authType: "password"  # Azure Event Hubs uses SASL/PLAIN with connection string
+    # Secret references (retrieved from Azure Key Vault via secretstore component)
+    # For Event Hubs: username is "$ConnectionString", password is the full connection string
+    saslUsernameSecretRef: "eventhubs-kafka-username"  # Will be "$ConnectionString"
+    saslPasswordSecretRef: "eventhubs-connection-string"  # Full Event Hubs connection string
+    consumerGroup: "todo-app-production-consumers"
+    clientId: "todo-app-aks-producer"
+
+  # Secret Store Configuration (Azure Key Vault)
+  # Task: T048 - Azure Key Vault integration for production secrets
+  secretstore:
+    keyvault:
+      vaultName: ""  # Set via Terraform output or environment variable
+      tenantId: ""   # Optional: Azure tenant ID
+      clientId: ""   # Optional: User-assigned managed identity client ID
+
+  # State Store Configuration (PostgreSQL - Neon)
+  stateStore:
+    tableName: "dapr_state"
+    metadataTableName: "dapr_state_metadata"
+    timeout: "30s"
+    cleanupInterval: "1h"
+    # Production connection pooling
+    maxIdleConnections: 10
+    maxOpenConnections: 50
+    connectionMaxIdleTime: "5m"
+
+  # mTLS Configuration (MANDATORY in production)
+  # Task: T050 - Enable Dapr mTLS in production
+  mtls:
+    enabled: true
+    allowedClockSkew: "15m"
+    workloadCertTTL: "24h"
+
+  # Logging
+  logLevel: "info"
+
+# Azure-specific configuration
+azure:
+  # Azure region (must match AKS cluster region)
+  region: eastus
+
+  # Azure Key Vault for secrets
+  keyVault:
+    enabled: true
+    name: "todo-app-keyvault-prod"  # Replace with actual Key Vault name
+    cacheTTL: "60s"
+
+  # Managed Identity for Key Vault access
+  managedIdentity:
+    clientId: ""  # Optional: User-assigned identity. Leave empty for system-assigned.
+
+  # Azure environment
+  environment: "AZUREPUBLICCLOUD"
+
+  # Azure Container Registry (ACR)
+  acr:
+    name: "todoappacrprod"
+    loginServer: "todoappacrprod.azurecr.io"
+
+  # Azure Monitor / Application Insights
+  monitoring:
+    enabled: true
+    instrumentationKey: ""  # Set via Key Vault
+    logAnalyticsWorkspaceId: ""  # Set via Terraform output
+
+# Backend API Service
+backend:
+  replicaCount: 5
+
+  image:
+    repository: todoappacrprod.azurecr.io/todo-backend
+    tag: "1.0.0"  # Use Git commit SHA in CI/CD
+    pullPolicy: Always
+
+  service:
+    type: ClusterIP
+    port: 8000
+
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+
+  # Dapr annotations
+  annotations:
+    dapr.io/enabled: "true"
+    dapr.io/app-id: "backend-api"
+    dapr.io/app-port: "8000"
+    dapr.io/app-protocol: "http"
+    dapr.io/log-level: "info"
+    dapr.io/enable-profiling: "false"
+
+  # Environment variables
+  env:
+    LLM_PROVIDER: openai
+    CORS_ORIGINS: "https://todo-app.example.com"
+    ENVIRONMENT: production
+    LOG_LEVEL: INFO
+    DAPR_HTTP_PORT: "3500"
+
+  # Health probes
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 30
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  # Autoscaling
+  autoscaling:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+# Recurring Task Service (Phase V)
+recurringService:
+  enabled: true
+  replicaCount: 3
+
+  image:
+    repository: todoappacrprod.azurecr.io/recurring-task-service
+    tag: "1.0.0"
+    pullPolicy: Always
+
+  service:
+    type: ClusterIP
+    port: 8001
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+  # Dapr annotations
+  annotations:
+    dapr.io/enabled: "true"
+    dapr.io/app-id: "recurring-task-service"
+    dapr.io/app-port: "8001"
+    dapr.io/app-protocol: "http"
+    dapr.io/log-level: "info"
+
+  env:
+    SERVICE_NAME: "recurring-task-service"
+    LOG_LEVEL: INFO
+    DAPR_HTTP_PORT: "3500"
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+# Notification Service (Phase V)
+notificationService:
+  enabled: true
+  replicaCount: 3
+
+  image:
+    repository: todoappacrprod.azurecr.io/notification-service
+    tag: "1.0.0"
+    pullPolicy: Always
+
+  service:
+    type: ClusterIP
+    port: 8002
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+  # Dapr annotations
+  annotations:
+    dapr.io/enabled: "true"
+    dapr.io/app-id: "notification-service"
+    dapr.io/app-port: "8002"
+    dapr.io/app-protocol: "http"
+    dapr.io/log-level: "info"
+
+  env:
+    SERVICE_NAME: "notification-service"
+    LOG_LEVEL: INFO
+    DAPR_HTTP_PORT: "3500"
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+# Frontend Service
+frontend:
+  replicaCount: 5
+
+  image:
+    repository: todoappacrprod.azurecr.io/todo-frontend
+    tag: "1.0.0"
+    pullPolicy: Always
+
+  service:
+    type: ClusterIP
+    port: 3000
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+  env:
+    NEXT_PUBLIC_API_URL: "https://api.todo-app.example.com"
+    NEXT_PUBLIC_CHATKIT_URL: "https://api.todo-app.example.com/api/chatkit"
+    ENVIRONMENT: production
+    NODE_ENV: production
+
+  livenessProbe:
+    httpGet:
+      path: /api/health
+      port: 3000
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /api/health
+      port: 3000
+    initialDelaySeconds: 30
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# Ingress Configuration (Production with TLS)
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+  hosts:
+    - host: todo-app.example.com
+      paths:
+        - path: /api
+          pathType: Prefix
+          backend:
+            service: backend
+        - path: /
+          pathType: Prefix
+          backend:
+            service: frontend
+  tls:
+    - secretName: todo-production-tls
+      hosts:
+        - todo-app.example.com
+
+# Secrets (Azure Key Vault integration)
+secrets:
+  name: todo-secrets
+  kafka:
+    name: kafka-credentials
+    usernameKey: username
+    passwordKey: password
+  database:
+    name: todo-secrets
+    connectionStringKey: dapr-state-db-url
+  allowedSecrets:
+    - todo-secrets
+    - kafka-credentials
+
+# ConfigMap
+configMap:
+  name: todo-config
+
+# Security Context (Production hardening)
+securityContext:
+  backend:
+    runAsNonRoot: true
+    runAsUser: 10001
+    fsGroup: 10001
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+
+  frontend:
+    runAsNonRoot: true
+    runAsUser: 1001
+    fsGroup: 1001
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+
+# Pod Annotations (Prometheus scraping)
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
+  prometheus.io/path: "/metrics"
+
+# Pod Anti-Affinity (High Availability across nodes)
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - todo-app
+          topologyKey: kubernetes.io/hostname
+
+# Node Selector (optional - use specific node pools)
+nodeSelector:
+  workload: production
+  # AKS node pool label
+
+# Tolerations (for dedicated node pools)
+tolerations:
+  - key: "workload"
+    operator: "Equal"
+    value: "production"
+    effect: "NoSchedule"
+
+# Network Policies (Production security)
+networkPolicies:
+  enabled: true
+
+# Horizontal Pod Autoscaler (HPA) settings
+hpa:
+  enabled: true
+
+# PostgreSQL (External - Neon)
+postgresql:
+  enabled: false  # Using external Neon PostgreSQL
+  # Connection string provided via Azure Key Vault
+
+# Monitoring (Prometheus & Grafana)
+monitoring:
+  enabled: true
+  prometheus:
+    enabled: true
+    retention: 30d
+  grafana:
+    enabled: true
+    adminPassword: ""  # Set via Key Vault
+
+# Cost Optimization
+costOptimization:
+  # Azure Cost Management alerts
+  monthlyBudget: 500  # USD
+  alertThreshold: 80  # Percentage

@@ -1,0 +1,23 @@
+# Kubernetes Service for Backend API
+# Type: ClusterIP (internal only, accessed via Ingress)
+# Port: 8000 (FastAPI)
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-backend
+  labels:
+    app: todo-app
+    component: backend
+    tier: api
+spec:
+  type: NodePort
+  selector:
+    app: todo-app
+    component: backend
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+    protocol: TCP
+  sessionAffinity: None

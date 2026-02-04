@@ -1,0 +1,19 @@
+# Dapr Jobs API Configuration
+# Requires Dapr Scheduler service running in cluster
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: jobs-api
+spec:
+  type: jobs
+  version: v1alpha1
+  metadata:
+  - name: schedulerHostAddress
+    value: "dapr-scheduler:50006"  # Dapr Scheduler service
+  - name: failurePolicy
+    value: "constant"
+  - name: maxRetries
+    value: "3"
+  - name: interval
+    value: "5s"
