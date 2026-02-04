@@ -1,0 +1,12 @@
+# Task Components Directory
+
+This directory contains all task-related UI components:
+- TaskForm.tsx
+- TaskList.tsx
+- TaskItem.tsx
+- PriorityBadge.tsx
+- TagChip.tsx
+- SearchBar.tsx
+- FilterPanel.tsx
+- SortControls.tsx
+- RelativeTime.tsx

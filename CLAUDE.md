@@ -221,3 +221,4 @@ See `.specify/memory/constitution.md` for code quality, testing, performance, se
 - 003-validate-backend: Validated backend API with integration testing
 - 002-backend-task-management: Implemented FastAPI backend with PostgreSQL
 - 001-phase2-homepage-ui: Added TypeScript 5.x with React 19
+dont not create any file starting with tmpclaude and ending with -cwd anywhere

@@ -1,0 +1,242 @@
+# Prometheus ServiceMonitor Definitions
+# Phase V: Enterprise-Grade Cloud Infrastructure
+# Task: T052 - Create Prometheus ServiceMonitor definitions for observability
+
+{{- if .Values.monitoring.enabled }}
+---
+# ServiceMonitor for Backend API
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "todo-app.fullname" . }}-backend
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+    component: backend
+spec:
+  selector:
+    matchLabels:
+      {{- include "todo-app.selectorLabels" . | nindent 6 }}
+      component: backend
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      scheme: http
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: namespace
+        - sourceLabels: [__meta_kubernetes_pod_label_app_kubernetes_io_version]
+          targetLabel: version
+      metricRelabelings:
+        # Drop high-cardinality metrics
+        - sourceLabels: [__name__]
+          regex: 'go_gc_.*|go_memstats_.*'
+          action: drop
+
+---
+# ServiceMonitor for Recurring Task Service
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "todo-app.fullname" . }}-recurring-service
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+    component: recurring-service
+spec:
+  selector:
+    matchLabels:
+      {{- include "todo-app.selectorLabels" . | nindent 6 }}
+      component: recurring-service
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      scheme: http
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: namespace
+        - sourceLabels: [__meta_kubernetes_pod_label_app_kubernetes_io_version]
+          targetLabel: version
+
+---
+# ServiceMonitor for Notification Service
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "todo-app.fullname" . }}-notification-service
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+    component: notification-service
+spec:
+  selector:
+    matchLabels:
+      {{- include "todo-app.selectorLabels" . | nindent 6 }}
+      component: notification-service
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      scheme: http
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: namespace
+        - sourceLabels: [__meta_kubernetes_pod_label_app_kubernetes_io_version]
+          targetLabel: version
+
+---
+# ServiceMonitor for Frontend
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "todo-app.fullname" . }}-frontend
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+    component: frontend
+spec:
+  selector:
+    matchLabels:
+      {{- include "todo-app.selectorLabels" . | nindent 6 }}
+      component: frontend
+  endpoints:
+    - port: http
+      path: /api/metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      scheme: http
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: namespace
+
+---
+# PodMonitor for Dapr Sidecars (metrics from Dapr runtime)
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "todo-app.fullname" . }}-dapr
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+    component: dapr
+spec:
+  selector:
+    matchLabels:
+      dapr.io/enabled: "true"
+  podMetricsEndpoints:
+    - port: dapr-metrics
+      path: /
+      interval: 30s
+      scrapeTimeout: 10s
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: namespace
+        - sourceLabels: [__meta_kubernetes_pod_label_dapr_io_app_id]
+          targetLabel: dapr_app_id
+
+---
+# PrometheusRule for Alerting
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "todo-app.fullname" . }}-alerts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+spec:
+  groups:
+    - name: todo-app-availability
+      interval: 30s
+      rules:
+        # Alert if any pod is down for > 5 minutes
+        - alert: PodDown
+          expr: up{job=~"todo-app-.*"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pod {{ $labels.pod }} is down"
+            description: "{{ $labels.pod }} in namespace {{ $labels.namespace }} has been down for more than 5 minutes."
+
+        # Alert if API latency p95 > 1 second
+        - alert: HighAPILatency
+          expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="todo-app-backend"}[5m])) by (le)) > 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High API latency detected"
+            description: "API p95 latency is {{ $value }}s (threshold: 1s)"
+
+        # Alert if error rate > 5%
+        - alert: HighErrorRate
+          expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.05
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High error rate detected"
+            description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+
+    - name: todo-app-kafka
+      interval: 30s
+      rules:
+        # Alert if Kafka consumer lag > 1000 messages
+        - alert: HighKafkaConsumerLag
+          expr: kafka_consumer_lag{job=~"todo-app-.*"} > 1000
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High Kafka consumer lag"
+            description: "Consumer {{ $labels.consumer_group }} has lag of {{ $value }} messages on topic {{ $labels.topic }}"
+
+        # Alert if Kafka publish failures > 10/min
+        - alert: KafkaPublishFailures
+          expr: rate(kafka_publish_errors_total[1m]) > 10
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Kafka publish failures detected"
+            description: "{{ $value }} Kafka publish failures per minute"
+
+    - name: todo-app-dapr
+      interval: 30s
+      rules:
+        # Alert if Dapr sidecar is unhealthy
+        - alert: DaprSidecarUnhealthy
+          expr: dapr_runtime_health{} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Dapr sidecar unhealthy"
+            description: "Dapr sidecar for {{ $labels.dapr_app_id }} is unhealthy"
+
+        # Alert if service invocation failures > 5%
+        - alert: HighServiceInvocationFailureRate
+          expr: sum(rate(dapr_http_server_request_count{status=~"5.."}[5m])) / sum(rate(dapr_http_server_request_count[5m])) > 0.05
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High Dapr service invocation failure rate"
+            description: "Failure rate is {{ $value | humanizePercentage }}"
+
+{{- end }}

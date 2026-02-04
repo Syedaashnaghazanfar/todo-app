@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.recurringService.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.recurringService.name }}
+    version: {{ .Values.recurringService.version }}
+    component: recurring-task-service
+    tier: backend
+spec:
+  replicas: {{ .Values.recurringService.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.recurringService.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.recurringService.name }}
+        version: {{ .Values.recurringService.version }}
+      annotations:
+        # Dapr sidecar configuration
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "recurring-task-service"
+        dapr.io/app-port: "8001"
+        dapr.io/log-level: "info"
+        dapr.io/enable-profiling: "false"
+        dapr.io/enable-api-logging: "true"
+        # Prometheus metrics
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "8001"
+    spec:
+      containers:
+      - name: recurring-task-service
+        image: {{ .Values.recurringService.image.repository }}:{{ .Values.recurringService.image.tag }}
+        imagePullPolicy: {{ .Values.recurringService.image.pullPolicy }}
+        ports:
+        - containerPort: 8001
+          name: http
+          protocol: TCP
+        env:
+        - name: PORT
+          value: "8001"
+        - name: HOST
+          value: "0.0.0.0"
+        - name: ENV
+          value: {{ .Values.env }}
+        - name: BACKEND_API_URL
+          value: "http://{{ .Values.backend.name }}:{{ .Values.backend.service.port }}"
+        - name: API_TIMEOUT
+          value: "10.0"
+        - name: LOG_LEVEL
+          value: "INFO"
+        # Dapr configuration
+        - name: DAPR_HTTP_PORT
+          value: "3500"
+        - name: DAPR_GRPC_PORT
+          value: "50001"
+        resources:
+          requests:
+            cpu: {{ .Values.recurringService.resources.requests.cpu }}
+            memory: {{ .Values.recurringService.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.recurringService.resources.limits.cpu }}
+            memory: {{ .Values.recurringService.resources.limits.memory }}
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8001
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      # Node affinity for backend workloads
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: workload-type
+                operator: In
+                values:
+                - backend
+      # Pod anti-affinity to distribute across nodes
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - {{ .Values.recurringService.name }}
+            topologyKey: kubernetes.io/hostname

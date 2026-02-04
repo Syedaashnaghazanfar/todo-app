@@ -1,0 +1,29 @@
+# Dapr Pub/Sub Component (Kafka)
+# Deployed via Helm template
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: pubsub-kafka
+spec:
+  type: pubsub.kafka
+  version: v1
+  metadata:
+  - name: brokers
+    value: "{{ .Values.kafka.brokers }}"  # Helm templated
+  - name: authType
+    value: "{{ .Values.kafka.authType }}"  # "none" (local) or "sasl" (Redpanda Cloud)
+  - name: saslUsername
+    secretKeyRef:
+      name: kafka-creds
+      key: username  # From Azure Key Vault via Dapr Secrets
+  - name: saslPassword
+    secretKeyRef:
+      name: kafka-creds
+      key: password
+  - name: consumerGroup
+    value: "{{ .Values.kafka.consumerGroup }}"
+  - name: clientID
+    value: "{{ .Values.app.name }}"
+  - name: maxMessageBytes
+    value: "1000000"  # 1MB max message size

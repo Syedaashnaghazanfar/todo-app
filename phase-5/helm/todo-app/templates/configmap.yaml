@@ -1,0 +1,44 @@
+# Kubernetes ConfigMap for Non-Sensitive Configuration
+# Contains ALL non-sensitive environment variables from backend/.env
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: todo-config
+  labels:
+    app: todo-app
+data:
+  # FastAPI Settings
+  APP_ENV: "development"
+  APP_PORT: "8000"
+
+  # JWT Configuration (non-sensitive)
+  JWT_ALGORITHM: "HS256"
+  JWT_EXPIRY_DAYS: "30"
+
+  # URLs
+  FRONTEND_URL: "http://localhost:3000"
+  CORS_ORIGINS: "http://localhost:3000,http://todo-app.local"
+
+  # MCP Configuration
+  MCP_ENABLED: "true"
+
+  # LLM Provider
+  LLM_PROVIDER: "groq"
+  GROQ_DEFAULT_MODEL: "openai/gpt-oss-20b"
+
+  # Logging
+  LOG_LEVEL: "INFO"
+  DEBUG: "True"
+  HOST: "0.0.0.0"
+
+  # BetterAuth MCP (empty = local)
+  BETTERAUTH_API_URL: ""
+
+  # Next.js Public
+  NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+  NEXT_PUBLIC_API_URL: "http://todo-backend:8000"
+  NEXT_PUBLIC_CHATKIT_URL: "http://todo-backend:8000/api/chatkit"
+
+  # Environment
+  ENVIRONMENT: "development"

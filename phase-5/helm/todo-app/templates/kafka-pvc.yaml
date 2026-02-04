@@ -1,0 +1,46 @@
+---
+# Kafka Persistent Volume Claim
+#
+# Provides persistent storage for Kafka data with 7-day retention
+# Survives pod restarts and ensures data durability for local development
+#
+# Specs:
+# - Storage: 10Gi
+# - Access Mode: ReadWriteOnce (single node access)
+# - Retention: 7 days (configured via Kafka settings)
+# - Storage Class: standard (Minikube default)
+#
+# Usage:
+#   This PVC is automatically created when deploying with Helm.
+#   Kafka pod mounts this volume to persist topic data and logs.
+#
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kafka-data-pvc
+  namespace: {{ .Values.namespace | default "default" }}
+  labels:
+    app: kafka
+    component: storage
+    environment: {{ .Values.environment | default "development" }}
+    managed-by: helm
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+spec:
+  accessModes:
+    - ReadWriteOnce  # Single node access (sufficient for Minikube)
+  resources:
+    requests:
+      storage: 10Gi  # 10GB for local development
+  {{- if .Values.kafka.storageClass }}
+  storageClassName: {{ .Values.kafka.storageClass }}
+  {{- else if eq .Values.environment "development" }}
+  storageClassName: standard  # Minikube default storage class
+  {{- else }}
+  storageClassName: managed-premium  # Azure premium SSD for production
+  {{- end }}
+
+---
+# Note: Kafka retention policy is configured via Helm values
+# See values-minikube.yaml for local development settings:
+#   kafka.logRetentionHours: 168 (7 days)
+#   kafka.persistence.size: 10Gi

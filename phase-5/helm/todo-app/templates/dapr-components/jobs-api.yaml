@@ -1,0 +1,62 @@
+# Dapr Jobs API Component
+# Used for recurring task generation and reminder scheduling
+# Requires Dapr Scheduler service running in the cluster
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: jobs-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: jobs
+  version: v1alpha1
+  metadata:
+  # Dapr Scheduler Service Address
+  # Must match the Dapr Scheduler deployment in the cluster
+  - name: schedulerHostAddress
+    value: {{ .Values.dapr.scheduler.address | default "dapr-scheduler.dapr-system.svc.cluster.local:50006" | quote }}
+
+  # Retry Policy for Failed Jobs (exponential backoff)
+  # Options: constant | exponential | linear
+  - name: failurePolicy
+    value: {{ .Values.dapr.jobs.failurePolicy | default "exponential" | quote }}
+
+  # Maximum number of retries before moving to DLQ
+  - name: maxRetries
+    value: {{ .Values.dapr.jobs.maxRetries | default "3" | quote }}
+
+  # Initial interval between retries (for exponential backoff)
+  - name: initialInterval
+    value: {{ .Values.dapr.jobs.initialInterval | default "5s" | quote }}
+
+  # Backoff multiplier for exponential policy (each retry multiplies the interval)
+  # With initialInterval=5s and multiplier=2: 5s → 10s → 20s
+  - name: multiplier
+    value: {{ .Values.dapr.jobs.multiplier | default "2" | quote }}
+
+  # Maximum interval between retries (cap for exponential backoff)
+  - name: maxInterval
+    value: {{ .Values.dapr.jobs.maxInterval | default "60s" | quote }}
+
+  # TTL for completed jobs (cleanup)
+  - name: ttl
+    value: {{ .Values.dapr.jobs.ttl | default "24h" | quote }}
+---
+# Note: Dapr Jobs API Configuration
+# Jobs are scheduled via HTTP API calls to: POST /v1.0-alpha1/jobs/{jobName}
+# Job data includes:
+#   - schedule: cron expression or @every syntax
+#   - data: JSON payload for the job handler
+#   - dueTime: optional one-time execution time
+#
+# Example schedules:
+#   - Daily at midnight: "0 0 * * *"
+#   - Every 10 minutes: "@every 10m"
+#   - Specific time: "2026-01-15T00:00:00Z" (dueTime)
+#
+# Jobs are invoked via HTTP POST to the app's configured endpoint:
+#   POST /jobs/{jobName} with the job data payload

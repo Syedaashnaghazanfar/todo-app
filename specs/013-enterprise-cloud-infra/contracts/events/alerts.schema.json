@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Alert Events",
+  "description": "CloudEvents for alert.scheduled, alert.cancelled",
+  "type": "object",
+  "required": ["specversion", "id", "source", "type", "time", "datacontenttype", "data"],
+  "properties": {
+    "specversion": { "const": "1.0" },
+    "id": { "type": "string", "format": "uuid" },
+    "source": { "const": "backend-api-service" },
+    "type": { 
+      "enum": ["com.todoapp.alert.scheduled", "com.todoapp.alert.cancelled"]
+    },
+    "time": { "type": "string", "format": "date-time" },
+    "datacontenttype": { "const": "application/json" },
+    "data": {
+      "type": "object",
+      "required": ["user_id", "task_id", "reminders"],
+      "properties": {
+        "user_id": { "type": "string" },
+        "task_id": { "type": "string", "format": "uuid" },
+        "reminders": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "reminder_id": { "type": "string", "format": "uuid" },
+              "scheduled_time": { "type": "string", "format": "date-time" },
+              "reminder_type": { "enum": ["email", "push"] }
+            }
+          }
+        }
+      }
+    }
+  }
+}

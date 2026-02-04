@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Task Operations Events",
+  "description": "CloudEvents for task.created, task.completed, task.deleted",
+  "type": "object",
+  "required": ["specversion", "id", "source", "type", "time", "datacontenttype", "data"],
+  "properties": {
+    "specversion": { "const": "1.0" },
+    "id": { "type": "string", "format": "uuid" },
+    "source": { "const": "backend-api-service" },
+    "type": { 
+      "enum": [
+        "com.todoapp.task.created",
+        "com.todoapp.task.completed", 
+        "com.todoapp.task.deleted"
+      ]
+    },
+    "time": { "type": "string", "format": "date-time" },
+    "datacontenttype": { "const": "application/json" },
+    "data": {
+      "type": "object",
+      "required": ["user_id", "task_id"],
+      "properties": {
+        "user_id": { "type": "string" },
+        "task_id": { "type": "string", "format": "uuid" },
+        "series_id": { "type": "string", "format": "uuid" },
+        "title": { "type": "string" },
+        "due_date": { "type": "string", "format": "date-time" },
+        "completed_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}
