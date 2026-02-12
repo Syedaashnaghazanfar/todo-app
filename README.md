@@ -16,7 +16,7 @@ A modern, production-ready todo application built with React, Next.js, and FastA
 | **Phase 2** | ✅ Complete | Backend API with FastAPI + PostgreSQL |
 | **Phase 3** | ✅ Complete | AI ChatKit Integration (OpenAI Agents SDK) |
 | **Phase 4** | ✅ **Complete** | **Cloud Native Deployment (Kubernetes + Minikube)** |
-| **Phase 5** | 🚧 Planned | Production Cloud Deployment (AWS EKS / GCP GKE / Azure AKS) |
+| **Phase 5** | ✅ Complete(80%) | Production Cloud Deployment (AWS EKS / GCP GKE / Azure AKS) |
 
 ## ✨ Features
 
